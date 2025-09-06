@@ -28,4 +28,26 @@ contract CertificateRegistry {
         universities[uni]=true;
         emit UniversityAdded(uni);
     }
- }
+
+    function removeUniversity(address uni) public onlyAdmin{
+        universities[uni]=false;
+        emit UniversityRemoved(uni);
+    }
+
+    function issueDocument(bytes32 certHash,string calldata pointer ) public onlyUniversity{
+        require(!issued[certHash],"aleready issued");
+        issued[certHash]=true;
+        issuerOf[certHash]=msg.sender;
+        emit CertificateIssued(certHash, msg.sender, pointer);
+    }
+
+    function verifyDocument(bytes32 certHash)public view returns (bool valid, address issuer){
+        return(issued[certHash],issuerOf[certHash]);
+    }
+
+    function revokeCertificate(bytes32 certHash) external onlyUniversity {
+        require(issued[certHash], "not issued");
+        require(issuerOf[certHash] == msg.sender, "only issuer can revoke");
+        issued[certHash] = false;
+    }
+}
