@@ -15,6 +15,12 @@ const userSchema = new Schema({
     required: true,
     minLength: 6,
   },
+  role: {
+    type: String,
+    enum: ["admin", "university", "user"],
+    default: "user",
+    required: true,
+  },
 });
 
 export type userDocumnet = InferSchemaType<typeof userSchema> & Document;

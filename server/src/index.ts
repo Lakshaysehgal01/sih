@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { connectToDb } from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
+import adminRoutes from "./routes/admin.route.js";
+import publicRoutes from "./routes/user.route.js"
 dotenv.config({ quiet: true });
 
 const port = process.env.PORT;
@@ -19,6 +21,9 @@ app.use(express.urlencoded({ extended: true }));
 // );
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("api/v1/public",)
+
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
   connectToDb();

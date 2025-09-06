@@ -34,3 +34,15 @@ export const checkLogin = async (
     res.status(500).json({ message: "Internal server error " });
   }
 };
+
+export const checkAdimn = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    res.status(401).json({ message: "Unauthorized - No user in request" });
+    return;
+  }
+  if (req.user.role !== "admin") {
+    res.status(403).json({ message: "Forbidden - Admins only" });
+    return;
+  }
+  next();
+};
