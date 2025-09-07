@@ -1,125 +1,211 @@
 // todo compile contarct and provide its abi here
 //abi of only 3 functions that is addUniversity and remove university and verify one
 export const ABI = [
-  { type: "constructor", inputs: [], stateMutability: "nonpayable" },
   {
-    type: "function",
-    name: "addUniversity",
-    inputs: [{ name: "uni", type: "address", internalType: "address" }],
-    outputs: [],
-    stateMutability: "nonpayable",
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "function",
-    name: "admin",
-    inputs: [],
-    outputs: [{ name: "", type: "address", internalType: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "issueDocument",
-    inputs: [
-      { name: "certHash", type: "bytes32", internalType: "bytes32" },
-      { name: "pointer", type: "string", internalType: "string" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "issued",
-    inputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "issuerOf",
-    inputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
-    outputs: [{ name: "", type: "address", internalType: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "removeUniversity",
-    inputs: [{ name: "uni", type: "address", internalType: "address" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "revokeCertificate",
-    inputs: [{ name: "certHash", type: "bytes32", internalType: "bytes32" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "universities",
-    inputs: [{ name: "", type: "address", internalType: "address" }],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "verifyDocument",
-    inputs: [{ name: "certHash", type: "bytes32", internalType: "bytes32" }],
-    outputs: [
-      { name: "valid", type: "bool", internalType: "bool" },
-      { name: "issuer", type: "address", internalType: "address" },
-    ],
-    stateMutability: "view",
-  },
-  {
-    type: "event",
-    name: "CertificateIssued",
-    inputs: [
+    "type": "function",
+    "name": "addUniversity",
+    "inputs": [
       {
-        name: "certHash",
-        type: "bytes32",
-        indexed: true,
-        internalType: "bytes32",
+        "name": "uni",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "admin",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "issueDocument",
+    "inputs": [
+      {
+        "name": "certHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
-        name: "issuer",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "pointer",
-        type: "string",
-        indexed: false,
-        internalType: "string",
-      },
+        "name": "pointer",
+        "type": "string",
+        "internalType": "string"
+      }
     ],
-    anonymous: false,
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    type: "event",
-    name: "UniversityAdded",
-    inputs: [
+    "type": "function",
+    "name": "issued",
+    "inputs": [
       {
-        name: "uni",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    anonymous: false,
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    type: "event",
-    name: "UniversityRemoved",
-    inputs: [
+    "type": "function",
+    "name": "issuerOf",
+    "inputs": [
       {
-        name: "uni",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
     ],
-    anonymous: false,
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
-];
+  {
+    "type": "function",
+    "name": "removeUniversity",
+    "inputs": [
+      {
+        "name": "uni",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "revokeCertificate",
+    "inputs": [
+      {
+        "name": "certHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "universities",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verifyDocument",
+    "inputs": [
+      {
+        "name": "certHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "valid",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "issuer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "CertificateIssued",
+    "inputs": [
+      {
+        "name": "certHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "issuer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pointer",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UniversityAdded",
+    "inputs": [
+      {
+        "name": "uni",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UniversityRemoved",
+    "inputs": [
+      {
+        "name": "uni",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  }
+]

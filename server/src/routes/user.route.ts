@@ -3,9 +3,9 @@ import { verifyFromDB, verifyQr } from "../controllers/user.controller.js";
 const router = express.Router();
 
 //Todo this one is the db call one
-router.post("/verify1", verifyFromDB);
+router.get("/verify1", verifyFromDB);
 
 //Qr code one
-router.post("/verify/:hash", verifyQr);
+router.get("/verify/:hash", verifyQr);
 
 export default router;

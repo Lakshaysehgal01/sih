@@ -4,8 +4,8 @@ declare namespace NodeJS {
     MONGO_URL: string;
     JWT_SECRET: string;
     NODE_ENV: string;
-    CONTRACT_ADDRESS:string;
-    ADMIN_WALLET_SECERT_KEY:string;
-    RPC_URL:string;
+    CONTRACT_ADDRESS: string;
+    ADMIN_WALLET_SECRET_KEY: string;
+    RPC_URL: string;
   }
 }
