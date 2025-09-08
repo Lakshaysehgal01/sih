@@ -54,7 +54,7 @@ const Home = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-          className="absolute top-[-60px] w-full h-[600px]"
+          className="absolute top-[-60px] w-full h-[500px]"
         >
           {/* Core bright source - moved down to be visible */}
           <div
@@ -234,7 +234,7 @@ const Home = () => {
 
         {/* Your existing SVG curve */}
         <motion.svg
-          className="absolute mt-[2vw] w-screen top-[-200px] h-[900px] pointer-events-none"
+          className="absolute w-screen top-[-250px] h-[900px] pointer-events-none"
           viewBox="0 0 100 50"
           preserveAspectRatio="none"
           initial={{ opacity: 0, y: -60 }}
@@ -284,12 +284,12 @@ const Home = () => {
         </motion.svg>
 
         {/* Your existing hero content */}
-        <div className="relative z-10 w-full max-w-3xl text-center py-8">
+        <div className="relative z-10 w-full mt-[-7vw] max-w-3xl text-center py-8">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.5, delay: 1 }}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center mb-[1vw]"
           >
             <span className="inline-block px-4 py-1 rounded-full border border-white/10 text-sm text-white/90 bg-white/5">
               New Update
@@ -303,7 +303,7 @@ const Home = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.5, delay: 1 }}
-            className="mt-8 text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight"
           >
             Your Digital Safety Net,
             <br />
