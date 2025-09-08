@@ -3,7 +3,7 @@ import { readOnlyContract } from "../lib/web3.js";
 
 export const verifyQr = async (req: Request, res: Response) => {
   try {
-    const certHash = req.params.hash;
+    const certHash = req.params.hash || "";
     const result = await readOnlyContract.verifyDocument(certHash);
     const [valid, issuer] = result;
     res.json({ valid, issuer });

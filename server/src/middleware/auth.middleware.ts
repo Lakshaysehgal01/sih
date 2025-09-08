@@ -35,7 +35,7 @@ export const checkLogin = async (
   }
 };
 
-export const checkAdimn = (req: Request, res: Response, next: NextFunction) => {
+export const checkAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     res.status(401).json({ message: "Unauthorized - No user in request" });
     return;
