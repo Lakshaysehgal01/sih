@@ -1,10 +1,28 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#080412] text-white flex flex-col">
+    <div className="min-h-screen h-screen overflow-x-hidden overflow-y-auto relative bg-[#080412] text-white flex flex-col scrollbar-thin scrollbar-thumb-[#392C52] scrollbar-track-[#120c1c] scrollbar-thumb-rounded-full">
+      <div className="flex z-[100] justify-between px-[5vw] w-screen mt-6 text-4xl">
+        <h1 className="font-roboto font-semibold">Flare</h1>
+        <div className="flex gap-4 flex-row text-xl font-roboto font-semibold">
+          <Link
+            to="/sign-in"
+            className="hover:cursor-pointer hover:text-[#ffffff]/80"
+          >
+            Sign In
+          </Link>
+          <Link
+            to="/sign-up"
+            className="hover:cursor-pointer hover:text-[#ffffff]/80"
+          >
+            Sign Up
+          </Link>
+        </div>
+      </div>
       {/* Hero area */}
-      <div className="relative flex-1 flex items-center justify-center px-6 overflow-hidden">
+      <div className="relative min-h-screen flex-1 flex items-center justify-center px-6 ">
         {/* Starfield: tiny twinkling stars in background */}
         <div className="absolute inset-0 pointer-events-none z-0">
           {Array.from({ length: 70 }).map((_, i) => (
@@ -36,7 +54,7 @@ const Home = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-          className="absolute top-0 w-full h-[600px]"
+          className="absolute top-[-60px] w-full h-[600px]"
         >
           {/* Core bright source - moved down to be visible */}
           <div
@@ -216,7 +234,7 @@ const Home = () => {
 
         {/* Your existing SVG curve */}
         <motion.svg
-          className="absolute w-screen top-[-200px] h-[900px] pointer-events-none"
+          className="absolute mt-[2vw] w-screen top-[-200px] h-[900px] pointer-events-none"
           viewBox="0 0 100 50"
           preserveAspectRatio="none"
           initial={{ opacity: 0, y: -60 }}
@@ -266,40 +284,108 @@ const Home = () => {
         </motion.svg>
 
         {/* Your existing hero content */}
-        <div className="relative z-10 w-full max-w-3xl mt-20 text-center py-8">
-          <div className="flex items-center justify-center">
+        <div className="relative z-10 w-full max-w-3xl text-center py-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5, delay: 1 }}
+            className="flex items-center justify-center"
+          >
             <span className="inline-block px-4 py-1 rounded-full border border-white/10 text-sm text-white/90 bg-white/5">
               New Update
             </span>
             <span className="ml-3 inline-block px-4 py-1 rounded-full border border-white/10 text-sm text-white/80 bg-white/3">
               Dashboard Live v2.3
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="mt-8 text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight">
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5, delay: 1 }}
+            className="mt-8 text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight"
+          >
             Your Digital Safety Net,
             <br />
             on Autopilot.
-          </h1>
+          </motion.h1>
 
-          <p className="mt-4 text-gray-300 max-w-2xl mx-auto text-base md:text-lg">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5, delay: 1 }}
+            className="mt-4 text-gray-300 max-w-2xl mx-auto text-base md:text-lg"
+          >
             Intelligence-driven cybersecurity, without the noise.
-          </p>
+          </motion.p>
 
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5, delay: 1 }}
+            className="mt-8 flex items-center justify-center gap-4"
+          >
             <button className="px-6 py-3 rounded-full bg-violet-600 text-white font-medium shadow hover:opacity-95 transition">
               Try Flare Now
             </button>
             <button className="px-6 py-3 rounded-full bg-white/10 text-white font-medium border border-white/10">
               Learn More
             </button>
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Footer decorative row */}
-      <div className="mx-auto w-full max-w-6xl px-6 pb-12">
-        <div className="h-8" />
+      {/* Defense System Dynamic Section */}
+      <div className="relative min-h-screen flex items-center justify-center bg-[#271D31]/40 py-20 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 100 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.25 }}
+          className="text-center"
+        >
+          {/* Main Text */}
+          <h2 className="text-4xl md:text-4xl lg:text-7xl flex flex-col leading-loose font-roboto font-medium text-[#ffffff]/90 mb-16 gap-3">
+            <span>In an era where threats are constant and</span>
+            <span>evolving, we believe your defense system</span>
+            <span>should be just as dynamic.</span>
+          </h2>
+
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mt-5">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                1.2M+
+              </div>
+              <div className="text-sm lg:text-md text-gray-400">
+                A Scans Blocked Last Year
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                30 sec
+              </div>
+              <div className="text-sm lg:text-md text-gray-400">
+                Average Response Time
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                20+
+              </div>
+              <div className="text-sm lg:text-md text-gray-400">
+                Security Integrations
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+                99.98%
+              </div>
+              <div className="text-sm lg:text-md text-gray-400">
+                Threat Detection Accuracy
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
