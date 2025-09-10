@@ -5,8 +5,9 @@ import { finialize, issueDocument } from "../controllers/university.controller.j
 import { upload } from "../lib/multer.js";
 const router = expres.Router();
 
-router.post("/issue", checkLogin, upload.single("pdf"), issueDocument);
+//Todo add checklogin middleware
+router.post("/issue", upload.single("pdf"), issueDocument);
 
-router.post("/finialize",checkLogin,finialize);
+router.post("/finialize",finialize);
 
 export default router;

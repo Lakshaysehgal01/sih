@@ -3,6 +3,7 @@ import "./App.css";
 import Hero from "./pages/Hero";
 import Dashboard from "./pages/Dashboard";
 import AboutUs from "./pages/AboutUs";
+import "@rainbow-me/rainbowkit/styles.css";
 
 function App() {
   return (
