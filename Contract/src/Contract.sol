@@ -7,6 +7,8 @@ contract CertificateRegistry {
     mapping(address => bool) public universities;
     mapping(bytes32 => bool) public issued;
     mapping(bytes32 => address) public issuerOf;
+    //to store cloudinary Url
+    mapping(bytes32=>string) public certificateUrl;
 
     event UniversityAdded(address indexed uni);
     event UniversityRemoved(address indexed uni);
@@ -38,11 +40,25 @@ contract CertificateRegistry {
         require(!issued[certHash],"aleready issued");
         issued[certHash]=true;
         issuerOf[certHash]=msg.sender;
+        certificateUrl[certHash]=pointer;
         emit CertificateIssued(certHash, msg.sender, pointer);
     }
 
-    function verifyDocument(bytes32 certHash)public view returns (bool valid, address issuer){
-        return(issued[certHash],issuerOf[certHash]);
+    function issueMultipleDocuments(bytes32[] calldata certHashes,string[] calldata cloudinaryUrls)public onlyUniversity{
+        require(certHashes.length==cloudinaryUrls.length,"Mismatch Input length");
+        for(uint256 i=0;i<certHashes.length;i++){
+            bytes32 certHash = certHashes[i];
+            string calldata cloudinaryUrl = cloudinaryUrls[i];
+            require(!issued[certHash], "Already issued");
+            issued[certHash]=true;
+            issuerOf[certHash]=msg.sender;
+            certificateUrl[certHash]=cloudinaryUrl;
+            emit CertificateIssued(certHash, msg.sender, cloudinaryUrl);
+        }
+    }
+
+    function verifyDocument(bytes32 certHash)public view returns (bool valid, address issuer,string memory url){
+        return(issued[certHash],issuerOf[certHash],certificateUrl[certHash]);
     }
 
     function revokeCertificate(bytes32 certHash) external onlyUniversity {
