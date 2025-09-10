@@ -7,5 +7,8 @@ declare namespace NodeJS {
     CONTRACT_ADDRESS: string;
     ADMIN_WALLET_SECRET_KEY: string;
     RPC_URL: string;
+    ClOUDINARY_CLOUD_NAME: string;
+    ClOUDINARY_API_KEY: string;
+    ClOUDINARY_API_SECERT: string;
   }
 }

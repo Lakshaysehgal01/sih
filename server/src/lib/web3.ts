@@ -22,7 +22,7 @@ const readOnlyContract = new ethers.Contract(
   ABI,
   provider
 ) as Contract & {
-  verifyDocument: (certHash: string) => Promise<[boolean, string]>;
+  verifyDocument: (certHash: string) => Promise<[boolean, string, string]>;
 };
 
 export { contract, readOnlyContract };
