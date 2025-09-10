@@ -1,3 +1,4 @@
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
 
@@ -74,15 +75,7 @@ export default function Navbar() {
 
               {/* CTA */}
               <li className="ml-1 pl-1">
-                <NavLink
-                  to="/book"
-                  className="relative inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white transition-colors
-                             bg-[linear-gradient(to_bottom,rgba(255,255,255,0.14),rgba(255,255,255,0.06))]
-                             ring-1 ring-white/20 hover:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.22),rgba(255,255,255,0.1))]"
-                >
-                  <span className="absolute inset-0 -z-10 rounded-full shadow-[0_0_40px_8px_rgba(255,255,255,0.06)]" />
-                  Book a Call
-                </NavLink>
+                <ConnectButton />
               </li>
             </ul>
           </div>

@@ -1,5 +1,8 @@
+import { axiosInstance } from "@/lib/axios";
+import { ABI } from "@/utils/ABI";
 import { useState, useRef, useEffect } from "react";
 import type React from "react";
+import { useWriteContract } from "wagmi";
 
 interface FilePreview {
   name: string;
@@ -23,6 +26,7 @@ const Dashboard = () => {
   const [uploading, setUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { writeContractAsync } = useWriteContract();
 
   // Camera state for Verify section
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -169,16 +173,37 @@ const Dashboard = () => {
     handlePickedFiles(e.dataTransfer?.files);
   };
 
-  const handleUpload = async (): Promise<void> => {
+  const handleUpload = async (e: React.FormEvent): Promise<void> => {
     if (!files.length) return;
     setUploading(true);
     setMessage("");
+    e.preventDefault();
     try {
-      const fd = new FormData();
-      files.forEach((f) => fd.append("files", f)); // backend can read as array
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      setMessage(`Uploaded ${files.length} file(s)`);
+      const formData = new FormData();
+      formData.append("pdf", files[0]);
+      formData.append("name", "Lakshay13");
+      formData.append("rollNo", "0461");
+      formData.append("course", "btech");
+      formData.append("year", "2027");
+      formData.append("university", "Msit");
+      const { data } = await axiosInstance.post("/university/issue", formData);
+      console.log(data);
+      const res = await writeContractAsync({
+        address: import.meta.env.VITE_CONTARCT_ADDRESS,
+        abi: ABI,
+        functionName: "issueDocument",
+        args: [data.certHash, data.pdfUrl],
+      });
+      console.log(res);
+      const { data: final } = await axiosInstance.post(
+        "/university/finialize",
+        {
+          pdfUrl: data.pdfUrl,
+          certHash: data.certHash,
+        }
+      );
+      console.log(final);
+      // console.log("Final PDF with QR:", final.finalPdfUrl);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       setMessage(msg);
@@ -635,7 +660,9 @@ const Dashboard = () => {
                     : "Choose Images/PDF/DOCX"}
                 </button>
                 <button
-                  onClick={handleUpload}
+                  onClick={(e) => {
+                    handleUpload(e);
+                  }}
                   disabled={!files.length || uploading}
                   className="px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 disabled:opacity-50"
                 >

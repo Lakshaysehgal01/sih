@@ -47,7 +47,9 @@ export const finialize = async (req: Request, res: Response) => {
       return;
     }
 
-    const qrBuffer = await QRCODE.toBuffer("https://www.youtube.com/");
+    const qrBuffer = await QRCODE.toBuffer(
+      `http://localhost:8080/api/v1/public/verify/${certHash}`
+    );
 
     const existingPdfBytes = await fetch(pdfUrl).then((res) =>
       res.arrayBuffer()
