@@ -1,0 +1,96 @@
+import { motion } from "framer-motion";
+import { NavLink } from "react-router-dom";
+
+const links = [
+  { to: "/", label: "Home" },
+  { to: "/work", label: "Work" },
+  { to: "/about", label: "About" },
+  { to: "/blog", label: "Blog" },
+  { to: "/more", label: "More" },
+];
+
+export default function Navbar() {
+  return (
+    <header className="sticky top-3 z-50">
+      <motion.div
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+        className="mx-auto flex max-w-7xl items-center justify-between px-4"
+      >
+        {/* Left brand */}
+        <div className="text-white/90 font-semibold tracking-wide select-none">
+          CrediLock
+        </div>
+
+        {/* Center pill nav */}
+        <nav className="relative mx-4 hidden md:block">
+          {/* top accent bar */}
+          <span className="pointer-events-none absolute -top-2 left-1/2 h-1 w-14 -translate-x-1/2 rounded-full bg-white/90"></span>
+
+          {/* glass container */}
+          <div className="relative mx-auto flex items-center gap-1 rounded-full border border-white/10 bg-[rgb(16_14_22/70%)] px-2 py-2 backdrop-blur-xl shadow-[0_10px_40px_-20px_rgba(0,0,0,0.8),inset_0_0_40px_rgba(255,255,255,0.04)]">
+            {/* soft outer glow */}
+            <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/10" />
+            <div className="pointer-events-none absolute -inset-px rounded-full bg-[radial-gradient(80%_80%_at_50%_-20%,rgba(255,255,255,0.12),transparent_60%)]" />
+
+            {/* links */}
+            <ul className="flex items-center">
+              {links.map((l) => (
+                <li key={l.to}>
+                  <NavLink
+                    to={l.to}
+                    className={({ isActive }) =>
+                      [
+                        "relative rounded-full px-1 py-2 text-sm transition-colors",
+                        "hover:text-white",
+                        isActive ? "text-white" : "",
+                      ].join(" ")
+                    }
+                  >
+                    {({ isActive }) => (
+                      <span className="relative inline-flex items-center p-2">
+                        {/* active glow pill */}
+                        {isActive && (
+                          <>
+                            <span className="absolute inset-0 -z-10 rounded-full bg-white/10 shadow-[0_0_10px_10px_rgba(255,255,255,0.2)]" />
+                            <span className="absolute inset-0 -z-10 rounded-full ring-1 ring-white/10" />
+                          </>
+                        )}
+                        <div
+                          className={`px-3 ${
+                            isActive
+                              ? "text-white font-semibold"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {l.label}
+                        </div>
+                      </span>
+                    )}
+                  </NavLink>
+                </li>
+              ))}
+
+              {/* CTA */}
+              <li className="ml-1 pl-1">
+                <NavLink
+                  to="/book"
+                  className="relative inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-white transition-colors
+                             bg-[linear-gradient(to_bottom,rgba(255,255,255,0.14),rgba(255,255,255,0.06))]
+                             ring-1 ring-white/20 hover:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.22),rgba(255,255,255,0.1))]"
+                >
+                  <span className="absolute inset-0 -z-10 rounded-full shadow-[0_0_40px_8px_rgba(255,255,255,0.06)]" />
+                  Book a Call
+                </NavLink>
+              </li>
+            </ul>
+          </div>
+        </nav>
+
+        {/* Right icon */}
+        <div className="text-white/80 select-none">⌘</div>
+      </motion.div>
+    </header>
+  );
+}

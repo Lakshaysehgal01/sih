@@ -1,24 +1,44 @@
 import { useState, useRef, useEffect } from "react";
+import type React from "react";
+
+interface FilePreview {
+  name: string;
+  size: number;
+  isImage: boolean;
+  isPdf: boolean;
+  isDoc: boolean;
+  url?: string;
+}
+
+type ActiveSection = "dashboard" | "upload" | "verify" | "contact";
+type FacingMode = "user" | "environment";
+// Add a simple verify mode
+// photo: show camera, pdf: show pdf upload/preview
 
 const Dashboard = () => {
-  const [active, setActive] = useState("dashboard");
+  const [active, setActive] = useState<ActiveSection>("dashboard");
   // Upload state
-  const [files, setFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const fileInputRef = useRef(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<FilePreview[]>([]);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Camera state for Verify section
-  const [cameraStream, setCameraStream] = useState(null);
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [cameraError, setCameraError] = useState("");
-  const [facingMode, setFacingMode] = useState("user"); // "user" for front, "environment" for back
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string>("");
+  const [facingMode, setFacingMode] = useState<FacingMode>("user"); // "user" for front, "environment" for back
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Verify mode state and PDF helpers
+  const [verifyMode, setVerifyMode] = useState<"photo" | "pdf">("photo");
+  const verifyPdfInputRef = useRef<HTMLInputElement>(null);
+  const [verifyPdfUrl, setVerifyPdfUrl] = useState<string | null>(null);
 
   // Mobile sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   useEffect(() => {
     return () => {
@@ -27,7 +47,7 @@ const Dashboard = () => {
     };
   }, [previews]);
 
-  const btnClass = (key) =>
+  const btnClass = (key: ActiveSection): string =>
     `w-full text-left px-3 py-2 rounded-lg transition ${
       active === key
         ? "bg-white/10 text-slate-100"
@@ -35,7 +55,7 @@ const Dashboard = () => {
     }`;
 
   // Handlers for file selection/drop and upload
-  const handlePickedFiles = (fileList) => {
+  const handlePickedFiles = (fileList: FileList | null): void => {
     const arr = Array.from(fileList || []).filter(Boolean);
     if (!arr.length) return;
 
@@ -51,8 +71,9 @@ const Dashboard = () => {
     const allPreviews = newFiles.map((f) => {
       const isImage = f.type?.startsWith("image/");
       const isPdf = f.type === "application/pdf";
-      const isDoc =
-        f.type?.includes("document") || f.name?.match(/\.(doc|docx)$/i);
+      const isDoc = Boolean(
+        f.type?.includes("document") || f.name?.match(/\.(doc|docx)$/i)
+      );
 
       return {
         name: f.name,
@@ -66,7 +87,7 @@ const Dashboard = () => {
     setPreviews(allPreviews);
   };
 
-  const removeFile = (index) => {
+  const removeFile = (index: number): void => {
     const newFiles = files.filter((_, i) => i !== index);
     setFiles(newFiles);
 
@@ -79,8 +100,9 @@ const Dashboard = () => {
     const newPreviews = newFiles.map((f) => {
       const isImage = f.type?.startsWith("image/");
       const isPdf = f.type === "application/pdf";
-      const isDoc =
-        f.type?.includes("document") || f.name?.match(/\.(doc|docx)$/i);
+      const isDoc = Boolean(
+        f.type?.includes("document") || f.name?.match(/\.(doc|docx)$/i)
+      );
 
       return {
         name: f.name,
@@ -94,21 +116,60 @@ const Dashboard = () => {
     setPreviews(newPreviews);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (!e.target.files?.length) return;
     handlePickedFiles(e.target.files);
     // Reset the input value so the same files can be selected again
     setTimeout(() => {
-      e.target.value = "";
+      if (e.target) e.target.value = "";
     }, 100);
   };
 
-  const handleDrop = (e) => {
+  // PDF change handler for Verify section
+  const handleVerifyPdfChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setCameraError("Please select a PDF file.");
+      return;
+    }
+    if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
+    const url = URL.createObjectURL(file);
+    setVerifyPdfUrl(url);
+  };
+
+  // Switch verify mode and cleanup appropriately
+  const handleVerifyModeChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ): void => {
+    const mode = (e.target.value as "photo" | "pdf") || "photo";
+    setVerifyMode(mode);
+    if (mode === "pdf") {
+      // Ensure camera is off when switching to pdf
+      stopCamera();
+      setCapturedPhoto(null);
+    } else {
+      // Clear any selected PDF when switching back to photo (optional)
+      if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
+      setVerifyPdfUrl(null);
+    }
+  };
+
+  // Cleanup pdf object URL
+  useEffect(() => {
+    return () => {
+      if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
+    };
+  }, [verifyPdfUrl]);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     handlePickedFiles(e.dataTransfer?.files);
   };
 
-  const handleUpload = async () => {
+  const handleUpload = async (): Promise<void> => {
     if (!files.length) return;
     setUploading(true);
     setMessage("");
@@ -118,17 +179,17 @@ const Dashboard = () => {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (!res.ok) throw new Error("Upload failed");
       setMessage(`Uploaded ${files.length} file(s)`);
-    } catch (err) {
-      setMessage(err.message || "Upload failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setMessage(msg);
     } finally {
       setUploading(false);
     }
   };
 
   // Camera functions for Verify section
-  const startCamera = async (mode = facingMode) => {
+  const startCamera = async (mode: FacingMode = facingMode): Promise<void> => {
     try {
-      console.log("Starting camera with mode:", mode);
       setCameraError("");
 
       // Check if getUserMedia is supported
@@ -145,7 +206,6 @@ const Dashboard = () => {
         audio: false,
       });
 
-      console.log("Stream obtained:", stream);
       setCameraStream(stream);
 
       // Wait for next tick to ensure state is updated
@@ -156,38 +216,39 @@ const Dashboard = () => {
           videoRef.current.onloadedmetadata = () => {
             console.log("Video metadata loaded, attempting to play");
             videoRef.current
-              .play()
+              ?.play()
               .then(() => console.log("Video playing successfully"))
-              .catch((err) => console.error("Play failed:", err));
+              .catch((e) => console.error("Play failed:", e));
           };
         }
       }, 100);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Camera error:", err);
       let errorMessage = "Camera access failed. ";
+      const e = err as { name?: string; message?: string };
 
-      if (err.name === "NotAllowedError") {
+      if (e?.name === "NotAllowedError") {
         errorMessage += "Please allow camera permissions.";
-      } else if (err.name === "NotFoundError") {
+      } else if (e?.name === "NotFoundError") {
         errorMessage += "No camera found.";
-      } else if (err.name === "NotSupportedError") {
+      } else if (e?.name === "NotSupportedError") {
         errorMessage += "Camera not supported.";
       } else {
-        errorMessage += err.message;
+        errorMessage += e?.message || "Unknown error.";
       }
 
       setCameraError(errorMessage);
     }
   };
 
-  const stopCamera = () => {
+  const stopCamera = (): void => {
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
       setCameraStream(null);
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = (): void => {
     if (!videoRef.current || !canvasRef.current) {
       console.error("Video or canvas ref not available");
       return;
@@ -207,7 +268,7 @@ const Dashboard = () => {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
+    ctx?.drawImage(video, 0, 0);
 
     const photoDataURL = canvas.toDataURL("image/jpeg", 0.9);
     console.log(
@@ -220,7 +281,7 @@ const Dashboard = () => {
     // Don't stop the camera, just hide the video element
   };
 
-  const retakePhoto = () => {
+  const retakePhoto = (): void => {
     setCapturedPhoto(null);
     // Always ensure camera is running after retake
     if (cameraStream && videoRef.current) {
@@ -238,7 +299,7 @@ const Dashboard = () => {
     }
   };
 
-  const switchCamera = () => {
+  const switchCamera = (): void => {
     const newFacingMode = facingMode === "user" ? "environment" : "user";
 
     // Stop current stream and restart with new camera
@@ -274,7 +335,11 @@ const Dashboard = () => {
   }, [active]);
 
   return (
-    <div className="h-screen w-full bg-[#0b0f1a] text-slate-200 flex">
+    <div
+      className={`min-h-screen bg-[#0b0f1a] text-slate-200 flex ${
+        sidebarOpen ? "pl-64" : ""
+      } lg:pl-64`}
+    >
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -285,19 +350,28 @@ const Dashboard = () => {
 
       {/* Sidebar */}
       <aside
+        id="app-sidebar"
         className={`
-        w-64 shrink-0 border-r border-white/10 bg-[#0d1220] flex flex-col
-        fixed lg:relative z-50 lg:z-auto h-full
+        w-64 h-screen shrink-0 border-r border-white/10 bg-[#0d1220] flex flex-col
+        fixed inset-y-0 left-0 z-50
         transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
       >
-        <div className="px-5 py-4 flex items-center gap-2 border-b border-white/10">
+        <div className="px-6 py-4 flex items-center gap-2 border-b border-white/10">
           <div className="w-6 h-6 rounded bg-white/10" />
           <span className="font-semibold tracking-wide">findly</span>
           <span className="ml-2 text-[10px] text-slate-400 px-2 py-0.5 rounded-full border border-white/10">
             Beta
           </span>
+          {/* Mobile close */}
+          <button
+            className="ml-auto lg:hidden p-2 text-slate-400 hover:text-slate-200"
+            aria-label="Close sidebar"
+            onClick={() => setSidebarOpen(false)}
+          >
+            ✕
+          </button>
         </div>
         <nav className="p-3 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
           <button
@@ -316,7 +390,7 @@ const Dashboard = () => {
             }}
             className={`${btnClass("upload")} mt-1`}
           >
-            Upload
+            Issue Documents
           </button>
           <button
             onClick={() => {
@@ -351,12 +425,14 @@ const Dashboard = () => {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col">
+      <main className="w-full flex-1 flex flex-col">
         {/* Top bar / breadcrumb */}
         <header className="h-12 flex items-center border-b border-white/10 px-6">
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 -ml-2 mr-3 text-slate-400 hover:text-slate-200"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
+            className="lg:hidden p-2 mr-3 text-slate-400 hover:text-slate-200"
           >
             <svg
               className="w-5 h-5"
@@ -379,7 +455,7 @@ const Dashboard = () => {
         </header>
 
         {/* Content area */}
-        <section className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5 scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
+        <section className="md:w-full flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5 scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {/* Dashboard Section */}
           {active === "dashboard" && (
             <div className="bg-white/[0.03] rounded-xl border border-white/10 p-4 md:p-5">
@@ -587,95 +663,174 @@ const Dashboard = () => {
                 </div>
               )}
 
-              <div className="flex flex-col gap-6">
-                {/* Camera/Preview Area */}
-                <div className="space-y-4">
-                  <div className="h-[110vw] md:h-[35.5vw] rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                    {capturedPhoto ? (
-                      <img
-                        src={capturedPhoto}
-                        alt="Captured photo"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : cameraStream ? (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                        onLoadedMetadata={() => {
-                          if (videoRef.current) {
-                            videoRef.current.play().catch(console.error);
-                          }
-                        }}
+              {/* Mode selector */}
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-sm font-semibold text-slate-300">
+                  Mode
+                </label>
+                <select
+                  value={verifyMode}
+                  onChange={handleVerifyModeChange}
+                  className="w-full sm:w-auto bg-[#0d1220] border border-white/20 rounded-md px-3 py-2 text-sm !text-white font-semibold"
+                >
+                  <option className="text-white" value="photo">
+                    Click a photo
+                  </option>
+                  <option className="text-white" value="pdf">
+                    Scan a PDF
+                  </option>
+                </select>
+              </div>
+
+              {/* Photo Mode */}
+              {verifyMode === "photo" && (
+                <div className="flex flex-col gap-6">
+                  {/* Camera/Preview Area */}
+                  <div className="space-y-4">
+                    <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                      {capturedPhoto ? (
+                        <img
+                          src={capturedPhoto}
+                          alt="Captured photo"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : cameraStream ? (
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onLoadedMetadata={() => {
+                            if (videoRef.current) {
+                              videoRef.current.play().catch(console.error);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-slate-400">
+                          <div className="text-center px-4">
+                            <div className="text-4xl mb-3">📷</div>
+                            <div className="font-medium">Camera Preview</div>
+                            <div className="text-xs mt-1">
+                              Click "Start Camera" to begin
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Camera Controls */}
+                    <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
+                      {!cameraStream && !capturedPhoto && (
+                        <button
+                          onClick={() => startCamera()}
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm"
+                        >
+                          Start Camera
+                        </button>
+                      )}
+
+                      {cameraStream && !capturedPhoto && (
+                        <>
+                          <button
+                            onClick={capturePhoto}
+                            className="w-full sm:w-auto px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm"
+                          >
+                            📸 Capture
+                          </button>
+                          <button
+                            onClick={switchCamera}
+                            className="w-full sm:w-auto px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
+                            title="Switch Camera"
+                          >
+                            🔄 {facingMode === "user" ? "Back" : "Front"}
+                          </button>
+                          <button
+                            onClick={stopCamera}
+                            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                          >
+                            Stop
+                          </button>
+                        </>
+                      )}
+
+                      {capturedPhoto && (
+                        <>
+                          <button
+                            onClick={retakePhoto}
+                            className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                          >
+                            Retake
+                          </button>
+                          <button className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm">
+                            Use Photo
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PDF Mode */}
+              {verifyMode === "pdf" && (
+                <div className="flex flex-col gap-4">
+                  <input
+                    ref={verifyPdfInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleVerifyPdfChange}
+                    className="hidden"
+                  />
+                  <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex items-center justify-center">
+                    {verifyPdfUrl ? (
+                      <embed
+                        src={verifyPdfUrl}
+                        type="application/pdf"
+                        className="absolute inset-0 w-full h-full"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <div className="text-center">
-                          <div className="text-4xl mb-3">📷</div>
-                          <div className="font-medium">Camera Preview</div>
-                          <div className="text-xs mt-1">
-                            Click "Start Camera" to begin
-                          </div>
+                      <div className="text-slate-400 text-center px-4">
+                        <div className="text-4xl mb-3">📄</div>
+                        <div className="font-medium">Scan a PDF</div>
+                        <div className="text-xs mt-1">
+                          Choose a PDF to preview and scan
                         </div>
                       </div>
                     )}
                   </div>
-
-                  {/* Camera Controls */}
-                  <div className="flex flex-wrap gap-2 sm:gap-3">
-                    {!cameraStream && !capturedPhoto && (
+                  <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
+                    <button
+                      onClick={() => verifyPdfInputRef.current?.click()}
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm"
+                    >
+                      Choose PDF
+                    </button>
+                    {verifyPdfUrl && (
                       <>
-                        <button
-                          onClick={startCamera}
-                          className="flex-1 min-w-[120px] px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm"
+                        <a
+                          href={verifyPdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm text-center"
                         >
-                          Start Camera
-                        </button>
-                      </>
-                    )}
-
-                    {cameraStream && !capturedPhoto && (
-                      <>
+                          Open in new tab
+                        </a>
                         <button
-                          onClick={capturePhoto}
-                          className="flex-1 min-w-[120px] px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm"
+                          onClick={() => {
+                            if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
+                            setVerifyPdfUrl(null);
+                          }}
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
                         >
-                          📸 Capture
-                        </button>
-                        <button
-                          onClick={switchCamera}
-                          className="px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
-                          title="Switch Camera"
-                        >
-                          🔄 {facingMode === "user" ? "Back" : "Front"}
-                        </button>
-                        <button
-                          onClick={stopCamera}
-                          className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
-                        >
-                          Stop
-                        </button>
-                      </>
-                    )}
-
-                    {capturedPhoto && (
-                      <>
-                        <button
-                          onClick={retakePhoto}
-                          className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
-                        >
-                          Retake
-                        </button>
-                        <button className="flex-1 min-w-[120px] px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm">
-                          Use Photo
+                          Clear
                         </button>
                       </>
                     )}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Hidden canvas for photo capture */}
               <canvas ref={canvasRef} className="hidden" />
