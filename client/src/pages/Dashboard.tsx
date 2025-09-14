@@ -1,8 +1,10 @@
 import { axiosInstance } from "@/lib/axios";
+import { config } from "@/lib/wagmi";
 import { ABI } from "@/utils/ABI";
 import { useState, useRef, useEffect } from "react";
 import type React from "react";
 import { useWriteContract } from "wagmi";
+import { waitForTransactionReceipt } from "@wagmi/core";
 
 interface FilePreview {
   name: string;
@@ -195,6 +197,10 @@ const Dashboard = () => {
         args: [data.certHash, data.pdfUrl],
       });
       console.log(res);
+      const transactionReceipt = await waitForTransactionReceipt(config, {
+        hash: res,
+      });
+      console.log(transactionReceipt);
       const { data: final } = await axiosInstance.post(
         "/university/finialize",
         {
@@ -206,6 +212,7 @@ const Dashboard = () => {
       // console.log("Final PDF with QR:", final.finalPdfUrl);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
+      console.error("error");
       setMessage(msg);
     } finally {
       setUploading(false);

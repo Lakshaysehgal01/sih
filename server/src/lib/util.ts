@@ -4,9 +4,11 @@ import jwt from "jsonwebtoken";
 
 export const generateToken = (
   userId: Types.ObjectId,
-  res: Response
+  res: Response,
+  role: string
 ): string => {
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+  //todo:- add role in token
+  const token = jwt.sign({ userId, role }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
   res.cookie("jwt", token, {
