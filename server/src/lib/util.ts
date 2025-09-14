@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 export const generateToken = (
   userId: Types.ObjectId,
   res: Response,
-  role: string
+  role: "user" | "admin" | "university"
 ): string => {
   //todo:- add role in token
   const token = jwt.sign({ userId, role }, process.env.JWT_SECRET, {

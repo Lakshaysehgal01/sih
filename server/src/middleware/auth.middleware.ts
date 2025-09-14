@@ -16,6 +16,7 @@ export const checkLogin = async (
     }
     const decode = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload & {
       userId: string;
+      role: "user" | "admin" | "university";
     };
     if (!decode) {
       res.status(401).json({
@@ -29,20 +30,45 @@ export const checkLogin = async (
       return;
     }
     req.user = user;
+    req.role = decode.role;
     next();
   } catch (error) {
     res.status(500).json({ message: "Internal server error " });
   }
 };
 
-export const checkAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    res.status(401).json({ message: "Unauthorized - No user in request" });
-    return;
+export const checkAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.role) {
+      return res.status(401).json({ message: "Unauthorized - Not logged in" });
+    }
+    if (req.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden - Admins only" });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error " });
   }
-  if (req.user.role !== "admin") {
-    res.status(403).json({ message: "Forbidden - Admins only" });
-    return;
+};
+
+export const checkUniversity = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.role) {
+      return res.status(401).json({ message: "Unauthorized - Not logged in" });
+    }
+    if (req.role !== "university") {
+      return res.status(403).json({ message: "Forbidden - University only" });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error " });
   }
-  next();
 };

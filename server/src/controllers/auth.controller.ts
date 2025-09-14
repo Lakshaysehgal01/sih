@@ -31,7 +31,7 @@ export const signup = async (req: Request, res: Response) => {
       fullName,
     });
     if (newUser) {
-      generateToken(newUser._id, res);
+      generateToken(newUser._id, res, "user");
       const userWithoutPassword = newUser.toObject() as {
         [key: string]: any;
       };
@@ -73,7 +73,7 @@ export const login = async (req: Request, res: Response) => {
       res.status(403).json({ message: "Incoorect Password" });
       return;
     }
-    generateToken(existingUser._id, res);
+    generateToken(existingUser._id, res, "user");
     const userWithoutPassword = existingUser.toObject() as {
       [key: string]: any;
     };

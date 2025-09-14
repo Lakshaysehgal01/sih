@@ -1,11 +1,15 @@
 import express from "express";
-import { checkAdmin, checkLogin } from "../middleware/auth.middleware.js";
-import { addUniversity, removeUniversity } from "../controllers/admin.controller.js";
+import { checkLogin } from "../middleware/auth.middleware.js";
+import {
+  addUniversity,
+  removeUniversity,
+} from "../controllers/admin.controller.js";
 
 const router = express.Router();
 
-router.post("/addUniversity", checkLogin, checkAdmin, addUniversity);
+//Todo add admin middleware now
+router.post("/addUniversity", checkLogin, addUniversity);
 
-router.post("/removeUniversity", checkLogin, checkAdmin, removeUniversity);
+router.post("/removeUniversity", checkLogin, removeUniversity);
 
 export default router;
