@@ -1,74 +1,57 @@
-import type { NextFunction, Request, Response } from "express";
-import jwt, { type JwtPayload } from "jsonwebtoken";
-import { User } from "../models/user.model.js";
-export const checkLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token = req.cookies.jwt;
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+
+interface AuthPayload {
+  userId: string;
+  role: string;
+}
+
+export const protect =
+  (...allowedRoles: string[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const token =
+      req.cookies?.token ||
+      req.cookies?.jwt || // Try 'jwt' cookie name too
+      req.headers.authorization?.replace("Bearer ", "");
+
     if (!token) {
-      res.status(401).json({
-        message: "Unauthorized - No token Provided",
+      console.log("❌ No token provided");
+      return res.status(401).json({
+        message: "Not authenticated",
+        debug: {
+          cookiesReceived: Object.keys(req.cookies || {}),
+          authHeaderPresent: !!req.headers.authorization,
+        },
       });
-      return;
     }
-    const decode = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload & {
-      userId: string;
-      role: "user" | "admin" | "university";
-    };
-    if (!decode) {
-      res.status(401).json({
-        message: "Unauthorized - Invalid Token ",
+
+    try {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as AuthPayload;
+
+      console.log("✅ Token decoded successfully:", {
+        userId: decoded.userId,
+        role: decoded.role,
       });
-      return;
-    }
-    const user = await User.findById(decode.userId).select("-password");
-    if (!user) {
-      res.status(404).json({ message: "User not found " });
-      return;
-    }
-    req.user = user;
-    req.role = decode.role;
-    next();
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error " });
-  }
-};
 
-export const checkAdmin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    if (!req.role) {
-      return res.status(401).json({ message: "Unauthorized - Not logged in" });
-    }
-    if (req.role !== "admin") {
-      return res.status(403).json({ message: "Forbidden - Admins only" });
-    }
-    next();
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error " });
-  }
-};
+      // Check role
+      if (allowedRoles.length && !allowedRoles.includes(decoded.role)) {
+        console.log(
+          `❌ Role mismatch: Required ${allowedRoles}, Got ${decoded.role}`
+        );
+        return res
+          .status(403)
+          .json({ message: "Forbidden: insufficient role" });
+      }
 
-export const checkUniversity = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    if (!req.role) {
-      return res.status(401).json({ message: "Unauthorized - Not logged in" });
+      // Attach user info to req
+      (req as any).user = { id: decoded.userId, role: decoded.role };
+
+      next();
+    } catch (err) {
+      console.log("❌ Token verification failed:", err);
+      return res.status(401).json({ message: "Invalid or expired token" });
     }
-    if (req.role !== "university") {
-      return res.status(403).json({ message: "Forbidden - University only" });
-    }
-    next();
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error " });
-  }
-};
+  };

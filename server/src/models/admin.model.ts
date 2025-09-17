@@ -3,7 +3,7 @@
 import { model, Schema } from "mongoose";
 
 const adminSchema = new Schema({
-  username: {
+  fullName: {
     type: String,
     required: true,
     unique: true,

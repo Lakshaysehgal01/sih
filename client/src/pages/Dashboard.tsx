@@ -5,6 +5,9 @@ import { useState, useRef, useEffect } from "react";
 import type React from "react";
 import { useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "@wagmi/core";
+import { useNavigate } from "react-router-dom";
+import ReasonModal from "@/component/ReasonModal";
+import { toast } from "sonner";
 
 interface FilePreview {
   name: string;
@@ -15,7 +18,12 @@ interface FilePreview {
   url?: string;
 }
 
-type ActiveSection = "dashboard" | "upload" | "verify" | "contact";
+type ActiveSection =
+  | "dashboard"
+  | "upload"
+  | "verify"
+  | "contact"
+  | "pending-requests";
 type FacingMode = "user" | "environment";
 // Add a simple verify mode
 // photo: show camera, pdf: show pdf upload/preview
@@ -29,6 +37,8 @@ const Dashboard = () => {
   const [message, setMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { writeContractAsync } = useWriteContract();
+  const [role, setRole] = useState("");
+  const navigate = useNavigate();
 
   // Camera state for Verify section
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -45,6 +55,174 @@ const Dashboard = () => {
 
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState<boolean>(false);
+  const [requestsError, setRequestsError] = useState<string>("");
+  const [reasonModalOpen, setReasonModalOpen] = useState<boolean>(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null
+  );
+  const [rejectLoading, setRejectLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (role === "admin") {
+      fetchPendingRequests();
+    }
+  }, [role]); // This will run when role changes
+
+  const fetchPendingRequests = async () => {
+    setLoadingRequests(true);
+    setRequestsError("");
+
+    try {
+      const response = await axiosInstance.get("/admin/getAllPendingRequests", {
+        withCredentials: true,
+      });
+
+      // Handle the response structure based on your controller
+      if (response.data.data) {
+        setPendingRequests(response.data.data);
+      } else if (Array.isArray(response.data)) {
+        setPendingRequests(response.data);
+      } else {
+        setPendingRequests([]);
+      }
+    } catch (error: any) {
+      console.error("❌ Failed to fetch pending requests:", error);
+      console.error("❌ Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message,
+        data: error.response?.data,
+      });
+
+      setRequestsError(
+        error.response?.data?.message || "Failed to fetch pending requests"
+      );
+      setPendingRequests([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  // Handle approve university request
+  const handleApproveRequest = async (requestId: string) => {
+    try {
+      const response = await axiosInstance.post(
+        `/admin/accept/${requestId}`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success("University approved successfully!");
+        // Refresh the pending requests list
+        fetchPendingRequests();
+      }
+    } catch (error: any) {
+      console.error("Failed to approve request:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to approve university request"
+      );
+    }
+  };
+
+  // Handle reject university request - updated to work with modal
+  const handleRejectRequest = async (reason: string) => {
+    if (!selectedRequestId) return;
+
+    setRejectLoading(true);
+    try {
+      const response = await axiosInstance.post(
+        `/admin/reject/${selectedRequestId}`,
+        { reason },
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success("University request rejected successfully!");
+        // Refresh the pending requests list
+        fetchPendingRequests();
+        // Close modal and reset state
+        setReasonModalOpen(false);
+        setSelectedRequestId(null);
+      }
+    } catch (error: any) {
+      console.error("Failed to reject request:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to reject university request"
+      );
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
+  // Handle opening reject modal
+  const handleOpenRejectModal = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setReasonModalOpen(true);
+  };
+
+  // Handle closing reject modal
+  const handleCloseRejectModal = () => {
+    setReasonModalOpen(false);
+    setSelectedRequestId(null);
+  };
+
+  // Handle view letter
+  const handleViewLetter = (letterUrl: string) => {
+    if (letterUrl) {
+      window.open(letterUrl, "_blank");
+    } else {
+      toast.error("No letter available for this request");
+    }
+  };
+  async function getUserDetails(): Promise<string> {
+    try {
+      const response = await axiosInstance.get("/auth/api/me", {
+        withCredentials: true,
+      });
+
+      // axiosInstance already handles the response parsing
+      if (response.status === 200 && response.data) {
+        const userRole =
+          response.data.user?.role || response.data.role || "user";
+        return userRole;
+      }
+
+      throw new Error("Invalid response format");
+    } catch (error: any) {
+      console.error("❌ Failed to get user details:", error);
+      console.error("❌ User details error:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.response?.data?.message,
+        data: error.response?.data,
+      });
+
+      if (error.response?.status === 401) {
+        navigate("/signin");
+      }
+
+      throw new Error(error.response?.data?.message || "Not authorized");
+    }
+  }
+
+  // Call getUserDetails when component mounts
+  useEffect(() => {
+    getUserDetails()
+      .then((role: string) => {
+        setRole(role);
+      })
+      .catch((error) => {
+        console.error("❌ Authentication error:", error);
+        // Handle error state if needed
+      });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -189,18 +367,17 @@ const Dashboard = () => {
       formData.append("year", "2027");
       formData.append("university", "Msit");
       const { data } = await axiosInstance.post("/university/issue", formData);
-      console.log(data);
+
       const res = await writeContractAsync({
         address: import.meta.env.VITE_CONTARCT_ADDRESS,
         abi: ABI,
+
         functionName: "issueDocument",
         args: [data.certHash, data.pdfUrl],
       });
-      console.log(res);
       const transactionReceipt = await waitForTransactionReceipt(config, {
         hash: res,
       });
-      console.log(transactionReceipt);
       const { data: final } = await axiosInstance.post(
         "/university/finialize",
         {
@@ -208,8 +385,6 @@ const Dashboard = () => {
           certHash: data.certHash,
         }
       );
-      console.log(final);
-      // console.log("Final PDF with QR:", final.finalPdfUrl);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       console.error("error");
@@ -243,10 +418,8 @@ const Dashboard = () => {
       // Wait for next tick to ensure state is updated
       setTimeout(() => {
         if (videoRef.current && stream) {
-          console.log("Setting video source");
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
-            console.log("Video metadata loaded, attempting to play");
             videoRef.current
               ?.play()
               .then(() => console.log("Video playing successfully"))
@@ -303,10 +476,6 @@ const Dashboard = () => {
     ctx?.drawImage(video, 0, 0);
 
     const photoDataURL = canvas.toDataURL("image/jpeg", 0.9);
-    console.log(
-      "Photo captured successfully",
-      photoDataURL.substring(0, 50) + "..."
-    );
     setCapturedPhoto(photoDataURL);
 
     // Keep camera stream running for retake functionality
@@ -380,6 +549,14 @@ const Dashboard = () => {
         />
       )}
 
+      {/* ReasonModal for rejecting requests */}
+      <ReasonModal
+        isOpen={reasonModalOpen}
+        onClose={handleCloseRejectModal}
+        onSubmit={handleRejectRequest}
+        loading={rejectLoading}
+      />
+
       {/* Sidebar */}
       <aside
         id="app-sidebar"
@@ -415,15 +592,17 @@ const Dashboard = () => {
           >
             Dashboard
           </button>
-          <button
-            onClick={() => {
-              setActive("upload");
-              setSidebarOpen(false);
-            }}
-            className={`${btnClass("upload")} mt-1`}
-          >
-            Issue Documents
-          </button>
+          {(role === "university" || role === "admin") && (
+            <button
+              onClick={() => {
+                setActive("upload");
+                setSidebarOpen(false);
+              }}
+              className={btnClass("upload")}
+            >
+              Issue Documents
+            </button>
+          )}
           <button
             onClick={() => {
               setActive("verify");
@@ -433,6 +612,26 @@ const Dashboard = () => {
           >
             Verify
           </button>
+
+          {/* Admin-only Pending Requests */}
+          {role === "admin" && (
+            <button
+              onClick={() => {
+                setActive("pending-requests");
+                setSidebarOpen(false);
+                // Always fetch requests when clicking the button, regardless of current state
+                fetchPendingRequests();
+              }}
+              className={`${btnClass("pending-requests")} mt-1`}
+            >
+              Pending Requests
+              {/* You can add a badge here for count */}
+              <span className="ml-2 px-2 py-0.5 bg-orange-500/20 text-orange-300 text-xs rounded-full">
+                Admin
+              </span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setActive("contact");
@@ -562,128 +761,128 @@ const Dashboard = () => {
           )}
 
           {/* Upload Section */}
-          {active === "upload" && (
-            <div className="bg-white/[0.03] rounded-xl p-4 md:p-6">
-              <div className="text-lg font-medium text-slate-100 mb-5">
-                Upload
-              </div>
+          {(role === "university" || role === "admin") &&
+            active === "upload" && (
+              <div className="bg-white/[0.03] rounded-xl p-4 md:p-6">
+                <div className="text-lg font-medium text-slate-100 mb-5">
+                  Upload
+                </div>
 
-              {/* Hidden multi file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,.pdf,.doc,.docx"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+                {/* Hidden multi file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
 
-              {/* Dropzone / Preview area */}
-              <div
-                className="w-full h-[300px] sm:h-[350px] rounded-xl border border-white/10 bg-white/[0.02] mb-6 flex items-center justify-center text-center px-4 cursor-pointer overflow-hidden"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {previews.length ? (
-                  <div
-                    className="w-full h-full overflow-auto p-2 sm:p-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {previews.map((p, idx) => (
-                      <div key={idx} className="relative group">
-                        {p.isImage ? (
-                          <img
-                            src={p.url}
-                            alt={p.name}
-                            className="w-full h-32 object-cover rounded-lg border border-white/10 bg-white/5"
-                          />
-                        ) : p.isPdf ? (
-                          <div className="h-32 rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
-                            <embed
-                              src={p.url}
-                              type="application/pdf"
-                              className="w-full h-full pointer-events-none"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-32 rounded-lg border border-white/10 bg-white/[0.03] flex flex-col items-center justify-center px-2">
-                            <div className="text-2xl mb-2">
-                              {p.isDoc ? "📄" : "📁"}
-                            </div>
-                            <div className="text-xs font-medium text-slate-200 truncate w-full text-center">
-                              {p.name}
-                            </div>
-                            <div className="text-[10px] text-slate-500 mt-1">
-                              {Math.round(p.size / 1024)} KB
-                            </div>
-                          </div>
-                        )}
-                        {/* Remove button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFile(idx);
-                          }}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    {/* Add more files button */}
+                {/* Dropzone / Preview area */}
+                <div
+                  className="w-full h-[300px] sm:h-[350px] rounded-xl border border-white/10 bg-white/[0.02] mb-6 flex items-center justify-center text-center px-4 cursor-pointer overflow-hidden"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {previews.length ? (
                     <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="h-32 rounded-lg border-2 border-dashed border-white/20 bg-white/[0.01] flex items-center justify-center cursor-pointer hover:border-white/30 hover:bg-white/[0.02] transition-colors"
+                      className="w-full h-full overflow-auto p-2 sm:p-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="text-center text-slate-400">
-                        <div className="text-2xl mb-1">+</div>
-                        <div className="text-xs">Add more</div>
+                      {previews.map((p, idx) => (
+                        <div key={idx} className="relative group">
+                          {p.isImage ? (
+                            <img
+                              src={p.url}
+                              alt={p.name}
+                              className="w-full h-32 object-cover rounded-lg border border-white/10 bg-white/5"
+                            />
+                          ) : p.isPdf ? (
+                            <div className="h-32 rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+                              <embed
+                                src={p.url}
+                                type="application/pdf"
+                                className="w-full h-full pointer-events-none"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-32 rounded-lg border border-white/10 bg-white/[0.03] flex flex-col items-center justify-center px-2">
+                              <div className="text-2xl mb-2">
+                                {p.isDoc ? "📄" : "📁"}
+                              </div>
+                              <div className="text-xs font-medium text-slate-200 truncate w-full text-center">
+                                {p.name}
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-1">
+                                {Math.round(p.size / 1024)} KB
+                              </div>
+                            </div>
+                          )}
+                          {/* Remove button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(idx);
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      {/* Add more files button */}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="h-32 rounded-lg border-2 border-dashed border-white/20 bg-white/[0.01] flex items-center justify-center cursor-pointer hover:border-white/30 hover:bg-white/[0.02] transition-colors"
+                      >
+                        <div className="text-center text-slate-400">
+                          <div className="text-2xl mb-1">+</div>
+                          <div className="text-xs">Add more</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-slate-400">
-                    <div className="font-medium">Drag & drop files here</div>
-                    <div className="text-xs mt-1">
-                      or click to browse (Images / PDF / DOCX) — multiple
-                      supported
+                  ) : (
+                    <div className="text-slate-400">
+                      <div className="font-medium">Drag & drop files here</div>
+                      <div className="text-xs mt-1">
+                        or click to browse (Images / PDF / DOCX) — multiple
+                        supported
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+
+                {/* Action bar */}
+                <div className="w-full h-[80px] rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                  >
+                    {files.length
+                      ? `Change files (${files.length})`
+                      : "Choose Images/PDF/DOCX"}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      handleUpload(e);
+                    }}
+                    disabled={!files.length || uploading}
+                    className="px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 disabled:opacity-50"
+                  >
+                    {uploading
+                      ? "Uploading..."
+                      : `Upload${files.length ? ` (${files.length})` : ""}`}
+                  </button>
+                </div>
+                {message && (
+                  <div className="text-xs text-slate-400 mt-2">{message}</div>
                 )}
               </div>
-
-              {/* Action bar */}
-              <div className="w-full h-[80px] rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center gap-3">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-                >
-                  {files.length
-                    ? `Change files (${files.length})`
-                    : "Choose Images/PDF/DOCX"}
-                </button>
-                <button
-                  onClick={(e) => {
-                    handleUpload(e);
-                  }}
-                  disabled={!files.length || uploading}
-                  className="px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 disabled:opacity-50"
-                >
-                  {uploading
-                    ? "Uploading..."
-                    : `Upload${files.length ? ` (${files.length})` : ""}`}
-                </button>
-              </div>
-              {message && (
-                <div className="text-xs text-slate-400 mt-2">{message}</div>
-              )}
-            </div>
-          )}
-
+            )}
           {/* Verify Section */}
           {active === "verify" && (
             <div className="bg-white/[0.03] rounded-xl p-6 flex flex-col">
@@ -868,6 +1067,180 @@ const Dashboard = () => {
 
               {/* Hidden canvas for photo capture */}
               <canvas ref={canvasRef} className="hidden" />
+            </div>
+          )}
+
+          {/* Pending Requests Section (Admin Only) */}
+          {active === "pending-requests" && role === "admin" && (
+            <div className="bg-white/[0.03] rounded-xl p-4 md:p-6">
+              <div className="text-lg font-medium text-slate-100 mb-5 flex items-center gap-3">
+                Pending University Requests
+                <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-full">
+                  Admin Panel
+                </span>
+                {loadingRequests && (
+                  <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                )}
+              </div>
+
+              {/* Error State */}
+              {requestsError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                  {requestsError}
+                  <button
+                    onClick={fetchPendingRequests}
+                    className="ml-2 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* Request Cards */}
+              <div className="space-y-4">
+                {loadingRequests ? (
+                  // Loading skeleton
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white/[0.02] border border-white/10 rounded-lg p-4 animate-pulse"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-slate-600"></div>
+                            <div className="h-4 bg-slate-600 rounded w-32"></div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="h-3 bg-slate-700 rounded w-48"></div>
+                            <div className="h-3 bg-slate-700 rounded w-32"></div>
+                            <div className="h-3 bg-slate-700 rounded w-40"></div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="h-8 bg-slate-600 rounded w-24"></div>
+                          <div className="h-8 bg-slate-600 rounded w-20"></div>
+                          <div className="h-8 bg-slate-600 rounded w-20"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : pendingRequests.length > 0 ? (
+                  // Real data
+                  pendingRequests.map((request) => (
+                    <div
+                      key={request._id}
+                      className="bg-white/[0.02] border border-white/10 rounded-lg p-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-3 h-3 rounded-full bg-yellow-400 animate-pulse" />
+                            <h3 className="text-slate-100 font-medium">
+                              {request.universityName || "Unknown University"}
+                            </h3>
+                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 text-xs rounded-full">
+                              Pending
+                            </span>
+                          </div>
+
+                          <div className="text-sm text-slate-300 space-y-1">
+                            <p>
+                              <span className="text-slate-400">Email:</span>{" "}
+                              {request.email}
+                            </p>
+                            <p>
+                              <span className="text-slate-400">AISHE:</span>{" "}
+                              {request.AISHE || "N/A"}
+                            </p>
+                            <p>
+                              <span className="text-slate-400">Address:</span>{" "}
+                              {request.publicAddress
+                                ? `${request.publicAddress.substring(0, 20)}...`
+                                : "N/A"}
+                            </p>
+                            <p>
+                              <span className="text-slate-400">Submitted:</span>{" "}
+                              {request.createdAt
+                                ? new Date(
+                                    request.createdAt
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 lg:w-auto">
+                          <button
+                            onClick={() => handleViewLetter(request.letter)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                          >
+                            📄 View Letter
+                          </button>
+                          <button
+                            onClick={() => handleApproveRequest(request._id)}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                          >
+                            ✅ Approve
+                          </button>
+                          <button
+                            onClick={() => handleOpenRejectModal(request._id)}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                          >
+                            ❌ Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Empty state
+                  <div className="text-center py-12 text-slate-400">
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-lg font-medium mb-2">
+                      No Pending Requests
+                    </h3>
+                    <p className="text-sm">
+                      All university registration requests have been processed.
+                    </p>
+                    <button
+                      onClick={fetchPendingRequests}
+                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                    >
+                      🔄 Refresh
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Stats Summary */}
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-yellow-400">
+                    {loadingRequests ? "..." : pendingRequests.length}
+                  </div>
+                  <div className="text-sm text-slate-400">Pending</div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-green-400">-</div>
+                  <div className="text-sm text-slate-400">Approved</div>
+                </div>
+                <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-red-400">-</div>
+                  <div className="text-sm text-slate-400">Rejected</div>
+                </div>
+              </div>
+
+              {/* Manual Refresh Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={fetchPendingRequests}
+                  disabled={loadingRequests}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                >
+                  {loadingRequests ? "🔄 Refreshing..." : "🔄 Refresh Requests"}
+                </button>
+              </div>
             </div>
           )}
 

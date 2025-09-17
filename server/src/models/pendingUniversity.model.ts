@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 
-
-const requestSchema = new Schema(
+const pendingRequestSchema = new Schema(
   {
     universityName: {
       type: String,
@@ -25,13 +24,12 @@ const requestSchema = new Schema(
       required: true,
       unique: true,
     },
-    contactNumber:{
-        type:Number,
-        required:true,
-        unique:true
-    }
+    password: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );
 
-export const Request = model("Request", requestSchema);
+export const pendingRequest = model("PendingRequest", pendingRequestSchema);

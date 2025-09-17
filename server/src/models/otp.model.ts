@@ -19,4 +19,9 @@ const otpSchema = new Schema(
   { timestamps: true }
 );
 
+// Add compound index to prevent duplicate OTPs for same email
+otpSchema.index({ email: 1, otp: 1 }, { unique: true });
+
+otpSchema.index({ email: 1 });
+
 export const Otp = model("Otp", otpSchema);
