@@ -4,6 +4,7 @@ import crypto from "crypto";
 import QRCODE from "qrcode";
 import { PDFDocument } from "pdf-lib";
 import type { UploadApiResponse } from "cloudinary";
+
 export const issueDocument = async (req: Request, res: Response) => {
   try {
     if (!req.file) {

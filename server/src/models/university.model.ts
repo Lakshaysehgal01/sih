@@ -8,6 +8,10 @@ const universitySchema = new Schema({
     type: String,
     required: true,
   },
+  password: {
+    type: String,
+    required: true,
+  },
   AISHE: {
     type: String,
     required: true,
@@ -23,10 +27,9 @@ const universitySchema = new Schema({
     required: true,
     unique: true,
   },
-  contactNumber: {
-    type: Number,
+  letter: {
+    type: String,
     required: true,
-    unique: true,
   },
   issuedDocuments: [
     {
