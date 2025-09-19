@@ -94,3 +94,112 @@ export const finialize = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const issueManyDocuments = async (req: Request, res: Response) => {
+  try {
+    if (!req.files || !Array.isArray(req.files)) {
+      res.status(400).json({ message: "No files uploaded" });
+      return;
+    }
+    const metadataArray = JSON.parse(req.body.metadata);
+    const documents: any[] = [];
+    for (let i = 0; i < (req.files as Express.Multer.File[]).length; i++) {
+      const file = req.files[i];
+      const pdfBuffer = file?.buffer;
+      const meta = metadataArray[i];
+      const uploaded: UploadApiResponse = await new Promise(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "raw", folder: "issue_documents" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result as UploadApiResponse);
+            }
+          );
+          stream.end(pdfBuffer);
+        }
+      );
+      const { name, university, year, course, cgpa, rollNo } = meta;
+      const rawString = `${name}|${rollNo}|${course}|${year}|${university}|${cgpa}`;
+      const certHash =
+        "0x" + crypto.createHash("sha256").update(rawString).digest("hex");
+
+      documents.push({
+        certHash,
+        fileUrl: uploaded.secure_url,
+        meta,
+      });
+    }
+    res.json({ documents });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const finializeMultiple = async (req: Request, res: Response) => {
+  try {
+    const { documents } = req.body;
+    if (!documents || !Array.isArray(documents)) {
+      res.status(400).json({ error: "documents array required" });
+      return;
+    }
+    const results = [];
+    for (const doc of documents) {
+      const { certHash, pdfUrl } = doc;
+      if (!pdfUrl || !certHash) continue;
+
+      // generate QR code
+      const qrBuffer = await QRCODE.toBuffer(
+        `${process.env.BASE_URL}${certHash}`
+      );
+
+      const existingPdfBytes = await fetch(pdfUrl).then((res) =>
+        res.arrayBuffer()
+      );
+
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const page = pdfDoc.getPages()[0];
+      if (!page) continue;
+
+      // embed QR code
+      const qrImageEmbed = await pdfDoc.embedPng(qrBuffer);
+      const { width } = page.getSize();
+      page.drawImage(qrImageEmbed, {
+        x: width - 120,
+        y: 40,
+        width: 100,
+        height: 100,
+      });
+
+      const pdfBytes = await pdfDoc.save();
+
+      // upload final PDF to Cloudinary
+      const finalUpload: UploadApiResponse = await new Promise(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "Document_qr",
+              resource_type: "raw",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result as UploadApiResponse);
+            }
+          );
+          stream.end(Buffer.from(pdfBytes));
+        }
+      );
+
+      results.push({
+        certHash,
+        finalUrl: finalUpload.secure_url,
+      });
+    }
+
+    res.status(201).json({ message: "Documents finalized", results });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

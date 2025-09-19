@@ -10,5 +10,6 @@ declare namespace NodeJS {
     ClOUDINARY_CLOUD_NAME: string;
     ClOUDINARY_API_KEY: string;
     ClOUDINARY_API_SECERT: string;
+    BASE_URL: string;
   }
 }

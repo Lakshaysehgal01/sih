@@ -8,6 +8,7 @@ import { waitForTransactionReceipt } from "@wagmi/core";
 import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
 import { toast } from "sonner";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 interface FilePreview {
   name: string;
@@ -361,8 +362,8 @@ const Dashboard = () => {
     try {
       const formData = new FormData();
       formData.append("pdf", files[0]);
-      formData.append("name", "Lakshay13");
-      formData.append("rollNo", "0461");
+      formData.append("name", "Lakshay13csjcnsaj");
+      formData.append("rollNo", "0461ncdsk");
       formData.append("course", "btech");
       formData.append("year", "2027");
       formData.append("university", "Msit");
@@ -385,6 +386,7 @@ const Dashboard = () => {
           certHash: data.certHash,
         }
       );
+      console.log(final);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       console.error("error");
@@ -682,6 +684,9 @@ const Dashboard = () => {
           <div className="text-slate-400 text-sm">
             Demo <span className="mx-1">/</span>{" "}
             <span className="text-slate-200">Assistant</span>
+          </div>
+          <div className="flex-end">
+            <ConnectButton />
           </div>
         </header>
 
