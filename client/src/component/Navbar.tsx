@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 
 const links = [
   { to: "/", label: "Home" },
-  { to: "/work", label: "Work" },
+  { to: "/impact", label: "Impact" },
   { to: "/about", label: "About" },
   { to: "/blog", label: "Blog" },
   { to: "/more", label: "More" },
@@ -17,11 +17,19 @@ export default function Navbar() {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-        className="mx-auto flex max-w-7xl items-center justify-between px-4"
+        className="mx-auto flex items-center justify-around px-4"
       >
         {/* Left brand */}
-        <div className="text-white/90 font-semibold tracking-wide select-none">
-          CrediLock
+        <div className="font-semibold tracking-wide select-none">
+          <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent text-4xl font-bold ">
+            Veri
+          </span>
+          <span
+            style={{ fontFamily: "BitCount Grid Double,sans-serif" }}
+            className="font-sans sm:text-[2.5vw] text-[10vw] md:text-[5vw] lg:text-[2.5vw] text-white/90"
+          >
+            Fy
+          </span>
         </div>
 
         {/* Center pill nav */}
