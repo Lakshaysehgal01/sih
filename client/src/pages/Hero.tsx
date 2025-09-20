@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useDrawerContext } from "@/shared-drawer-context";
 import Navbar from "@/component/Navbar";
+import TechStackChart from "@/component/TechStackChart";
 
 export default function Hero() {
   const { setIsDrawerOpen } = useDrawerContext();
@@ -100,20 +101,18 @@ export default function Hero() {
             transition={{ duration: 1, delay: 0.3 }}
             className="flex flex-col items-center text-center md:mt-28 mt-5"
           >
-            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold tracking-tight max-w-4xl leading-normal">
-              Your Digital Safety Net{" "}
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold tracking-tight max-w-5xl leading-normal">
               <span className="md:block">
-                On
+                Smart blockchain credentials, <br />
                 <span className="italic font-bold font-nyght bg-gradient-to-b from-zinc-700 via-zinc-200 to-zinc-50 bg-clip-text text-transparent tracking-wide">
-                  {" "}
-                  Autopilot.
+                  without the complexity.
                 </span>
               </span>
             </h1>
 
             <div className="md:mt-6 flex items-center justify-center gap-2 flex-wrap mt-6">
               <span className="bg-gradient-to-b from-neutral-100 to-neutral-500 bg-clip-text text-transparent text-lg md:text-xl lg:text-2xl font-normal">
-                Intelligence-driven cybersecurity, without the noise
+                Blockchain-powered verification, without the fraud
               </span>
             </div>
 
@@ -235,45 +234,74 @@ export default function Hero() {
       >
         <section className="flex-1 flex flex-col items-center justify-center text-center px-4">
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white max-w-5xl mx-auto mb-8 leading-tight">
-            In an era where threats are constant and evolving, we believe your
-            defense system should be just as dynamic.
+            In an era where fake credentials are rampant and evolving, we
+            believe your verification system should be just as sophisticated.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 mt-2">
             <div className="flex flex-col items-center">
               <span className="text-xl md:text-2xl font-bold text-white">
-                1.2M+
+                47M+
               </span>
               <span className="text-xs md:text-sm text-white/70 mt-1">
-                Attacks Blocked Last Year
+                Fake Certificates in India Workforce
               </span>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-xl md:text-2xl font-bold text-white">
-                30 sec
+                60 sec
               </span>
               <span className="text-xs md:text-sm text-white/70 mt-1">
-                Average Response Time
+                Blockchain Verification Time
               </span>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-xl md:text-2xl font-bold text-white">
-                20+
+                28%
               </span>
               <span className="text-xs md:text-sm text-white/70 mt-1">
-                Security Integrations
+                Job Applicants Submit Fake Degrees
               </span>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-xl md:text-2xl font-bold text-white">
-                99.98%
+                ₹3,000Cr+
               </span>
               <span className="text-xs md:text-sm text-white/70 mt-1">
-                Threat Detection Accuracy
+                Annual Loss from Education Fraud
               </span>
             </div>
           </div>
         </section>
       </motion.div>
+
+      <div className="min-h-screen bg-[#0a0a10] pt-24 pb-16">
+        {/* Purple radial background */}
+        <div className="absolute inset-0 bg-[#15042c] [mask-image:radial-gradient(100%_50%,white,transparent_90%)]"></div>
+
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+              Technology Stack Performance
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                {" "}
+                Metrics
+              </span>
+            </h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Transforming credential verification through blockchain technology
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <TechStackChart />
+          </div>
+        </div>
+      </div>
     </>
   );
 }
