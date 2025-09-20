@@ -8,7 +8,7 @@ import { waitForTransactionReceipt } from "@wagmi/core";
 import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
 import { toast } from "sonner";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import axios from "axios";
 
 interface FilePreview {
   name: string;
@@ -31,8 +31,6 @@ type ActiveSection =
   | "contact"
   | "pending-requests";
 type FacingMode = "user" | "environment";
-// Add a simple verify mode
-// photo: show camera, pdf: show pdf upload/preview
 
 const Dashboard = () => {
   const [active, setActive] = useState<ActiveSection>("dashboard");
@@ -58,7 +56,10 @@ const Dashboard = () => {
   // Verify mode state and PDF helpers
   const [verifyMode, setVerifyMode] = useState<"photo" | "pdf">("photo");
   const verifyPdfInputRef = useRef<HTMLInputElement>(null);
-  const [verifyPdfUrl, setVerifyPdfUrl] = useState<string | null>(null);
+  const [verifyPdfFiles, setVerifyPdfFiles] = useState<File[]>([]);
+  const [verifyPdfPreviews, setVerifyPdfPreviews] = useState<string[]>([]);
+  const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
+  const [verifyResults, setVerifyResults] = useState<any[]>([]);
 
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -70,6 +71,7 @@ const Dashboard = () => {
     null
   );
   const [rejectLoading, setRejectLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (role === "admin") {
@@ -188,6 +190,7 @@ const Dashboard = () => {
       toast.error("No letter available for this request");
     }
   };
+
   async function getUserDetails(): Promise<string> {
     try {
       const response = await axiosInstance.get("/auth/api/me", {
@@ -316,19 +319,29 @@ const Dashboard = () => {
     }, 100);
   };
 
-  // PDF change handler for Verify section
+  // PDF change handler for Verify section - now supports multiple files
   const handleVerifyPdfChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      setCameraError("Please select a PDF file.");
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    // Filter only PDF files
+    const pdfFiles = files.filter((file) => file.type === "application/pdf");
+    if (pdfFiles.length !== files.length) {
+      setCameraError("Please select only PDF files.");
       return;
     }
-    if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
-    const url = URL.createObjectURL(file);
-    setVerifyPdfUrl(url);
+
+    // Clean up existing previews
+    verifyPdfPreviews.forEach((url) => URL.revokeObjectURL(url));
+
+    // Create new previews
+    const newPreviews = pdfFiles.map((file) => URL.createObjectURL(file));
+
+    setVerifyPdfFiles([...verifyPdfFiles, ...pdfFiles]);
+    setVerifyPdfPreviews([...verifyPdfPreviews, ...newPreviews]);
+    setVerifyResults([]); // Clear previous results
   };
 
   // Switch verify mode and cleanup appropriately
@@ -342,18 +355,93 @@ const Dashboard = () => {
       stopCamera();
       setCapturedPhoto(null);
     } else {
-      // Clear any selected PDF when switching back to photo (optional)
-      if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
-      setVerifyPdfUrl(null);
+      // Clear any selected PDFs when switching back to photo
+      verifyPdfPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setVerifyPdfFiles([]);
+      setVerifyPdfPreviews([]);
+      setVerifyResults([]);
     }
   };
 
-  // Cleanup pdf object URL
+  // Handle multiple PDF verification submission
+  const handleVerifyPdfSubmit = async (): Promise<void> => {
+    if (!verifyPdfFiles.length) {
+      toast.error("Please select at least one PDF file first");
+      return;
+    }
+
+    setVerifyLoading(true);
+    setVerifyResults([]);
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+
+      // ✅ Append all files under the same key
+      verifyPdfFiles.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      // ✅ Send one POST with all files
+      const response = await axios.post(
+        "https://certificate-verifier-v1-1.onrender.com/upload-certificates/",
+        formData
+      );
+
+      console.log("Verification response", response.data);
+
+      toast.success(response?.data?.message);
+      setVerifyResults(response.data);
+
+      setTimeout(async () => {
+        try {
+          const session_id = response?.data?.session_id;
+          const uploadResult = await axios.get(
+            `https://certificate-verifier-v1-1.onrender.com/results/${session_id}`
+          );
+          console.log("Upload result", uploadResult.data);
+        } catch (err) {
+          console.error("Failed to fetch detailed results:", err);
+          setLoading(false);
+        }
+      }, 30000);
+
+      setLoading(false);
+
+      // --- Summary toast ---
+    } catch (error: any) {
+      console.error("Failed to verify documents:", error);
+      toast.error("Failed to verify documents");
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Remove a specific PDF file
+  const removeVerifyPdf = (index: number): void => {
+    const newFiles = verifyPdfFiles.filter((_, i) => i !== index);
+    const newPreviews = verifyPdfPreviews.filter((_, i) => i !== index);
+
+    // Clean up the removed preview
+    if (verifyPdfPreviews[index]) {
+      URL.revokeObjectURL(verifyPdfPreviews[index]);
+    }
+
+    setVerifyPdfFiles(newFiles);
+    setVerifyPdfPreviews(newPreviews);
+
+    // Clear results if no files left
+    if (newFiles.length === 0) {
+      setVerifyResults([]);
+    }
+  };
+
+  // Cleanup PDF object URLs
   useEffect(() => {
     return () => {
-      if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
+      verifyPdfPreviews.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [verifyPdfUrl]);
+  }, [verifyPdfPreviews]);
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -385,6 +473,7 @@ const Dashboard = () => {
         },
       ];
       const formData = new FormData();
+
       files.forEach((file) => {
         formData.append("pdf", file); // "pdf" must match upload.array("pdf", 20)
       });
@@ -399,6 +488,7 @@ const Dashboard = () => {
         (doc: any) => doc.certHash
       );
       const fileUrls: string[] = data.documents.map((doc: any) => doc.fileUrl);
+
       const res = await writeContractAsync({
         address: import.meta.env.VITE_CONTARCT_ADDRESS,
         abi: ABI,
@@ -415,7 +505,6 @@ const Dashboard = () => {
           documents: data.documents,
         }
       );
-      console.log(final);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       console.error("error");
@@ -711,6 +800,7 @@ const Dashboard = () => {
             </svg>
           </button>
 
+
           {/* Flex container to separate left (breadcrum) and right (button) */}
           <div className="flex items-center justify-between w-full">
             <div className="text-slate-400 text-sm">
@@ -720,6 +810,7 @@ const Dashboard = () => {
             <ConnectButton />
 
             {/* Right: Breadcrumb */}
+
           </div>
         </header>
 
@@ -1051,55 +1142,266 @@ const Dashboard = () => {
                     ref={verifyPdfInputRef}
                     type="file"
                     accept="application/pdf"
+                    multiple
                     onChange={handleVerifyPdfChange}
                     className="hidden"
                   />
-                  <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex items-center justify-center">
-                    {verifyPdfUrl ? (
-                      <embed
-                        src={verifyPdfUrl}
-                        type="application/pdf"
-                        className="absolute inset-0 w-full h-full"
-                      />
-                    ) : (
-                      <div className="text-slate-400 text-center px-4">
-                        <div className="text-4xl mb-3">📄</div>
-                        <div className="font-medium">Scan a PDF</div>
-                        <div className="text-xs mt-1">
-                          Choose a PDF to preview and scan
+
+                  {/* PDF Preview Area */}
+                  {verifyPdfFiles.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Selected Files Display */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {verifyPdfFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="relative group border border-white/10 rounded-lg p-3 bg-white/[0.02]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="text-2xl">📄</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-slate-200 truncate">
+                                  {file.name}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {Math.round(file.size / 1024)} KB
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeVerifyPdf(index)}
+                                disabled={verifyLoading}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all disabled:opacity-50"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+
+                            {/* PDF Preview */}
+                            {verifyPdfPreviews[index] && (
+                              <div className="mt-3 relative aspect-[3/4] rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden">
+                                <embed
+                                  src={verifyPdfPreviews[index]}
+                                  type="application/pdf"
+                                  className="absolute inset-0 w-full h-full"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Add More Files Button */}
+                        <div
+                          onClick={() => verifyPdfInputRef.current?.click()}
+                          className="border-2 border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-white/30 hover:bg-white/[0.02] transition-colors min-h-[200px]"
+                        >
+                          <div className="text-4xl text-slate-400 mb-2">+</div>
+                          <div className="text-sm text-slate-400 text-center">
+                            Add more PDFs
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex items-center justify-center">
+                      <div className="text-slate-400 text-center px-4">
+                        <div className="text-4xl mb-3">📄</div>
+                        <div className="font-medium">Verify Multiple PDFs</div>
+                        <div className="text-xs mt-1">
+                          Choose one or more PDF files to verify
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PDF Action Buttons */}
                   <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
                     <button
                       onClick={() => verifyPdfInputRef.current?.click()}
-                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm"
+                      disabled={loading}
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm disabled:opacity-50"
                     >
-                      Choose PDF
+                      {verifyPdfFiles.length > 0
+                        ? "Add More PDFs"
+                        : "Choose PDFs"}
                     </button>
-                    {verifyPdfUrl && (
+                    {verifyPdfFiles.length > 0 && (
                       <>
-                        <a
-                          href={verifyPdfUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm text-center"
+                        <button
+                          onClick={handleVerifyPdfSubmit}
+                          disabled={loading}
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm disabled:opacity-50 flex items-center gap-2"
                         >
-                          Open in new tab
-                        </a>
+                          {loading && (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          )}
+                          {loading
+                            ? "Verifying..."
+                            : `🔍 Verify ${verifyPdfFiles.length} Document${
+                                verifyPdfFiles.length > 1 ? "s" : ""
+                              }`}
+                        </button>
                         <button
                           onClick={() => {
-                            if (verifyPdfUrl) URL.revokeObjectURL(verifyPdfUrl);
-                            setVerifyPdfUrl(null);
+                            verifyPdfPreviews.forEach((url) =>
+                              URL.revokeObjectURL(url)
+                            );
+                            setVerifyPdfFiles([]);
+                            setVerifyPdfPreviews([]);
+                            setVerifyResults([]);
                           }}
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                          disabled={loading}
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm disabled:opacity-50"
                         >
-                          Clear
+                          Clear All
                         </button>
                       </>
                     )}
                   </div>
+
+                  {/* Verification Results */}
+                  {verifyResults.length > 0 && (
+                    <div className="mt-6 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-medium text-slate-100">
+                          Verification Results
+                        </h3>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">
+                          {verifyResults.filter((r) => r.isValid).length}/
+                          {verifyResults.length} Valid
+                        </span>
+                      </div>
+
+                      {verifyResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className={`p-4 rounded-lg border ${
+                            result.isValid
+                              ? "bg-green-500/10 border-green-500/20"
+                              : "bg-red-500/10 border-red-500/20"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`mt-0.5 ${
+                                result.isValid
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {result.isValid ? (
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4
+                                  className={`font-medium ${
+                                    result.isValid
+                                      ? "text-green-300"
+                                      : "text-red-300"
+                                  }`}
+                                >
+                                  {result.fileName}
+                                </h4>
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded-full ${
+                                    result.isValid
+                                      ? "bg-green-500/20 text-green-300"
+                                      : "bg-red-500/20 text-red-300"
+                                  }`}
+                                >
+                                  {result.isValid ? "Valid" : "Invalid"}
+                                </span>
+                              </div>
+                              <p
+                                className={`text-sm ${
+                                  result.isValid
+                                    ? "text-green-200/80"
+                                    : "text-red-200/80"
+                                }`}
+                              >
+                                {result.message ||
+                                  result.error ||
+                                  "Verification completed"}
+                              </p>
+
+                              {/* Show additional details if available */}
+                              {result.details && (
+                                <div className="mt-2 text-xs space-y-1">
+                                  {result.details.universityName && (
+                                    <p>
+                                      <span className="text-slate-400">
+                                        University:
+                                      </span>{" "}
+                                      {result.details.universityName}
+                                    </p>
+                                  )}
+                                  {result.details.studentName && (
+                                    <p>
+                                      <span className="text-slate-400">
+                                        Student:
+                                      </span>{" "}
+                                      {result.details.studentName}
+                                    </p>
+                                  )}
+                                  {result.details.course && (
+                                    <p>
+                                      <span className="text-slate-400">
+                                        Course:
+                                      </span>{" "}
+                                      {result.details.course}
+                                    </p>
+                                  )}
+                                  {result.details.issueDate && (
+                                    <p>
+                                      <span className="text-slate-400">
+                                        Issued:
+                                      </span>{" "}
+                                      {new Date(
+                                        result.details.issueDate
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
