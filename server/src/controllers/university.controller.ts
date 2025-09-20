@@ -4,6 +4,7 @@ import crypto from "crypto";
 import QRCODE from "qrcode";
 import { PDFDocument } from "pdf-lib";
 import type { UploadApiResponse } from "cloudinary";
+import { Documents } from "../models/issueDocument.model.js";
 
 export const issueDocument = async (req: Request, res: Response) => {
   try {
@@ -29,10 +30,23 @@ export const issueDocument = async (req: Request, res: Response) => {
 
     const certHash =
       "0x" + crypto.createHash("sha256").update(rawString).digest("hex");
+    console.log(req.authUser);
+    console.log(req.user?.id);
+
+    const document = await Documents.create({
+      name: name,
+      enrollNo: rollNo,
+      course: course,
+      year: year,
+      type: "pdf",
+      QrLink: uploaded.secure_url,
+      issued: false,
+      issuedBy: req.user?.id,
+    });
 
     res.json({
       certHash: certHash,
-      pdfUrl: uploaded.secure_url,
+      fileUrl: uploaded.secure_url,
     });
   } catch (error) {
     console.log(error);
@@ -103,6 +117,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
     }
     const metadataArray = JSON.parse(req.body.metadata);
     const documents: any[] = [];
+    console.log(req.user?.id);
     for (let i = 0; i < (req.files as Express.Multer.File[]).length; i++) {
       const file = req.files[i];
       const pdfBuffer = file?.buffer;
@@ -124,10 +139,20 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
       const certHash =
         "0x" + crypto.createHash("sha256").update(rawString).digest("hex");
 
+      const document = await Documents.create({
+        name: name,
+        enrollNo: rollNo,
+        course: course,
+        year: year,
+        type: "pdf",
+        QrLink: uploaded.secure_url,
+        issued: false,
+        issuedBy: req.user?.id,
+        certHash,
+      });
       documents.push({
         certHash,
         fileUrl: uploaded.secure_url,
-        meta,
       });
     }
     res.json({ documents });
@@ -146,15 +171,15 @@ export const finializeMultiple = async (req: Request, res: Response) => {
     }
     const results = [];
     for (const doc of documents) {
-      const { certHash, pdfUrl } = doc;
-      if (!pdfUrl || !certHash) continue;
+      const { certHash, fileUrl } = doc;
+      if (!fileUrl || !certHash) continue;
 
       // generate QR code
       const qrBuffer = await QRCODE.toBuffer(
         `${process.env.BASE_URL}${certHash}`
       );
 
-      const existingPdfBytes = await fetch(pdfUrl).then((res) =>
+      const existingPdfBytes = await fetch(fileUrl).then((res) =>
         res.arrayBuffer()
       );
 
@@ -189,6 +214,11 @@ export const finializeMultiple = async (req: Request, res: Response) => {
           );
           stream.end(Buffer.from(pdfBytes));
         }
+      );
+      await Documents.findOneAndUpdate(
+        { certHash },
+        { QrLink: finalUpload.secure_url, issued: true },
+        { new: true }
       );
 
       results.push({

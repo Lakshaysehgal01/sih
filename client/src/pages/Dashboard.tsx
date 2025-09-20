@@ -19,6 +19,11 @@ interface FilePreview {
   url?: string;
 }
 
+interface DocumentData {
+  certHash: string;
+  fileUrl: string;
+}
+
 type ActiveSection =
   | "dashboard"
   | "upload"
@@ -40,6 +45,7 @@ const Dashboard = () => {
   const { writeContractAsync } = useWriteContract();
   const [role, setRole] = useState("");
   const navigate = useNavigate();
+  const [documents, setDocuments] = useState<DocumentData[]>();
 
   // Camera state for Verify section
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -360,30 +366,53 @@ const Dashboard = () => {
     setMessage("");
     e.preventDefault();
     try {
+      const metadata = [
+        {
+          name: "Alice1246xhjs12",
+          rollNo: "123",
+          course: "B.Tech",
+          year: "2025",
+          university: "ABC University",
+          cgpa: "9.1",
+        },
+        {
+          name: "Bob3443gsjaasds",
+          rollNo: "124",
+          course: "B.Sc",
+          year: "2025",
+          university: "XYZ University",
+          cgpa: "8.5",
+        },
+      ];
       const formData = new FormData();
-      formData.append("pdf", files[0]);
-      formData.append("name", "Lakshay13csjcnsaj");
-      formData.append("rollNo", "0461ncdsk");
-      formData.append("course", "btech");
-      formData.append("year", "2027");
-      formData.append("university", "Msit");
-      const { data } = await axiosInstance.post("/university/issue", formData);
-
+      files.forEach((file) => {
+        formData.append("pdf", file); // "pdf" must match upload.array("pdf", 20)
+      });
+      formData.append("metadata", JSON.stringify(metadata));
+      const { data } = await axiosInstance.post(
+        "/university/issueMany",
+        formData
+      );
+      console.log(data.documents);
+      setDocuments(data.documents);
+      const certHashes: string[] = data.documents.map(
+        (doc: any) => doc.certHash
+      );
+      const fileUrls: string[] = data.documents.map((doc: any) => doc.fileUrl);
       const res = await writeContractAsync({
         address: import.meta.env.VITE_CONTARCT_ADDRESS,
         abi: ABI,
 
-        functionName: "issueDocument",
-        args: [data.certHash, data.pdfUrl],
+        functionName: "issueMultipleDocuments",
+        args: [certHashes, fileUrls],
       });
       const transactionReceipt = await waitForTransactionReceipt(config, {
         hash: res,
       });
       const { data: final } = await axiosInstance.post(
-        "/university/finialize",
+        "/university/finializeMany",
         {
-          pdfUrl: data.pdfUrl,
-          certHash: data.certHash,
+          documents: data.documents,
         }
       );
       console.log(final);
@@ -681,12 +710,16 @@ const Dashboard = () => {
               />
             </svg>
           </button>
-          <div className="text-slate-400 text-sm">
-            Demo <span className="mx-1">/</span>{" "}
-            <span className="text-slate-200">Assistant</span>
-          </div>
-          <div className="flex-end">
+
+          {/* Flex container to separate left (breadcrum) and right (button) */}
+          <div className="flex items-center justify-between w-full">
+            <div className="text-slate-400 text-sm">
+              Demo <span className="mx-1">/</span>{" "}
+              <span className="text-slate-200">Assistant</span>
+            </div>
             <ConnectButton />
+
+            {/* Right: Breadcrumb */}
           </div>
         </header>
 

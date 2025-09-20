@@ -9,7 +9,6 @@ const documentsSchema = new Schema(
     enrollNo: {
       type: String,
       required: true,
-      unique: true,
     },
     course: {
       type: String,
@@ -24,7 +23,11 @@ const documentsSchema = new Schema(
       enum: ["pdf", "png", "jpg"],
       default: "pdf",
     },
-    OrLink: {
+    QrLink: {
+      type: String,
+      default: "",
+    },
+    certHash: {
       type: String,
       default: "",
     },
