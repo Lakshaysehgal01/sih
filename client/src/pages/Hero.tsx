@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDrawerContext } from "@/shared-drawer-context";
 import Navbar from "@/component/Navbar";
 import TechStackChart from "@/component/TechStackChart";
+import Footer from "@/components/Footer";
 
 export default function Hero() {
   const { setIsDrawerOpen } = useDrawerContext();
@@ -131,7 +132,7 @@ export default function Hero() {
                     onClick={() => navigate("/dashboard")}
                     className="text-sm md:text-base font-normal"
                   >
-                    Try CrediLock
+                    Try VeriFy
                   </span>
                   <span className="bg-white/10 rounded-full p-0.5 md:p-1 group-hover:translate-x-1 transition-transform duration-300">
                     <ArrowRight
@@ -177,7 +178,7 @@ export default function Hero() {
                       />
                     </svg>
                   </button>
-                  <Link to="about-us">
+                  <Link to="about">
                     <span className="font-normal cursor-pointer">About Us</span>
                   </Link>
                 </>
@@ -302,6 +303,7 @@ export default function Hero() {
           </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 }

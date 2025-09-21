@@ -1,16 +1,18 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const links = [
   { to: "/", label: "Home" },
-  { to: "/impact", label: "Impact" },
   { to: "/about", label: "About" },
+  { to: "/technology", label: "Tech" },
   { to: "/blog", label: "Blog" },
   { to: "/more", label: "More" },
 ];
 
 export default function Navbar() {
+  const navigate = useNavigate();
+
   return (
     <header className="sticky top-3 z-50">
       <motion.div
@@ -90,7 +92,17 @@ export default function Navbar() {
         </nav>
 
         {/* Right icon */}
-        <div className="text-white/80 select-none">⌘</div>
+        <button
+          type="button"
+          className="group bg-[#2d2b3a] border border-white/10 rounded-full px-6 hover:cursor-pointer hover:bg-[#7B3FE4] py-3 flex items-center gap-1.5 md:gap-2 transition-all duration-300"
+        >
+          <span
+            onClick={() => navigate("/signin")}
+            className="text-sm md:text-base font-normal"
+          >
+            Login
+          </span>
+        </button>
       </motion.div>
     </header>
   );

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
 import { toast } from "sonner";
 import axios from "axios";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 interface FilePreview {
   name: string;
@@ -244,8 +245,8 @@ const Dashboard = () => {
   const btnClass = (key: ActiveSection): string =>
     `w-full text-left px-3 py-2 rounded-lg transition ${
       active === key
-        ? "bg-white/10 text-slate-100"
-        : "hover:bg-white/5 text-slate-300"
+        ? "bg-violet-500/20 text-violet-200 border border-violet-500/30"
+        : "hover:bg-white/5 text-slate-300 hover:text-slate-200"
     }`;
 
   // Handlers for file selection/drop and upload
@@ -657,9 +658,12 @@ const Dashboard = () => {
 
   return (
     <div
-      className={`min-h-screen bg-[#0b0f1a] text-slate-200 flex ${
+      className={`min-h-screen bg-[#0a0a10] text-slate-200 flex ${
         sidebarOpen ? "pl-64" : ""
       } lg:pl-64`}
+      style={{
+        background: `linear-gradient(135deg, #0a0a10 0%, #15042c 100%)`,
+      }}
     >
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -681,7 +685,7 @@ const Dashboard = () => {
       <aside
         id="app-sidebar"
         className={`
-        w-64 h-screen shrink-0 border-r border-white/10 bg-[#0d1220] flex flex-col
+        w-64 h-screen shrink-0 border-r border-white/10 bg-[#080412] flex flex-col
         fixed inset-y-0 left-0 z-50
         transform transition-transform duration-300 ease-in-out
          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -689,7 +693,7 @@ const Dashboard = () => {
       >
         <div className="px-6 py-4 flex items-center gap-2 border-b border-white/10">
           <div className="w-6 h-6 rounded bg-white/10" />
-          <span className="font-semibold tracking-wide">findly</span>
+          <span className="font-semibold tracking-wide">VeriFy</span>
           <span className="ml-2 text-[10px] text-slate-400 px-2 py-0.5 rounded-full border border-white/10">
             Beta
           </span>
@@ -778,7 +782,7 @@ const Dashboard = () => {
       {/* Main */}
       <main className="w-full flex-1 flex flex-col">
         {/* Top bar / breadcrumb */}
-        <header className="h-12 flex items-center border-b border-white/10 px-6">
+        <header className="h-12 flex items-center border-b border-white/10 px-6 py-7">
           <button
             onClick={() => setSidebarOpen((v) => !v)}
             aria-expanded={sidebarOpen}
@@ -800,17 +804,14 @@ const Dashboard = () => {
             </svg>
           </button>
 
-
           {/* Flex container to separate left (breadcrum) and right (button) */}
           <div className="flex items-center justify-between w-full">
-            <div className="text-slate-400 text-sm">
-              Demo <span className="mx-1">/</span>{" "}
-              <span className="text-slate-200">Assistant</span>
+            <div className="text-slate-400 text-md font-semibold">
+              Dashboard
             </div>
             <ConnectButton />
 
             {/* Right: Breadcrumb */}
-
           </div>
         </header>
 
@@ -818,11 +819,11 @@ const Dashboard = () => {
         <section className="md:w-full flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5 scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {/* Dashboard Section */}
           {active === "dashboard" && (
-            <div className="bg-white/[0.03] rounded-xl border border-white/10 p-4 md:p-5">
+            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-5 backdrop-blur-sm">
               <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                 <div className="min-w-0 w-full lg:w-auto">
                   <div className="flex flex-wrap items-center gap-2 text-slate-300">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-violet-400" />
                     <span className="font-medium truncate">
                       Average engagement rate per month
                     </span>
@@ -846,10 +847,10 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:shrink-0">
-                  <button className="px-3 py-1.5 text-xs rounded-full bg-[#0e2b5f] text-blue-300 border border-blue-500/30">
+                  <button className="px-3 py-1.5 text-xs rounded-full bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] transition-colors">
                     Update
                   </button>
-                  <button className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-slate-300 bg-white/5">
+                  <button className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-slate-300 bg-white/5 hover:bg-white/10 transition-colors">
                     Export Summary
                   </button>
                   <button className="p-2 text-slate-400 hover:text-slate-200">
@@ -892,7 +893,7 @@ const Dashboard = () => {
           {/* Upload Section */}
           {(role === "university" || role === "admin") &&
             active === "upload" && (
-              <div className="bg-white/[0.03] rounded-xl p-4 md:p-6">
+              <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-6 backdrop-blur-sm">
                 <div className="text-lg font-medium text-slate-100 mb-5">
                   Upload
                 </div>
@@ -1000,7 +1001,7 @@ const Dashboard = () => {
                       handleUpload(e);
                     }}
                     disabled={!files.length || uploading}
-                    className="px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] disabled:opacity-50 transition-colors"
                   >
                     {uploading
                       ? "Uploading..."
@@ -1014,7 +1015,7 @@ const Dashboard = () => {
             )}
           {/* Verify Section */}
           {active === "verify" && (
-            <div className="bg-white/[0.03] rounded-xl p-6 flex flex-col">
+            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-6 flex flex-col backdrop-blur-sm">
               <div className="text-lg font-medium text-slate-100 mb-5">
                 Identity Verification
               </div>
@@ -1033,13 +1034,13 @@ const Dashboard = () => {
                 <select
                   value={verifyMode}
                   onChange={handleVerifyModeChange}
-                  className="w-full sm:w-auto bg-[#0d1220] border border-white/20 rounded-md px-3 py-2 text-sm !text-white font-semibold"
+                  className="w-full sm:w-auto bg-[#1e152e] border border-[#2c223c] rounded-md px-3 py-2 text-sm !text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-600"
                 >
-                  <option className="text-white" value="photo">
+                  <option className="text-white bg-[#1e152e]" value="photo">
                     Click a photo
                   </option>
-                  <option className="text-white" value="pdf">
-                    Scan a PDF
+                  <option className="text-white bg-[#1e152e]" value="pdf">
+                    Upload a PDF
                   </option>
                 </select>
               </div>
@@ -1087,7 +1088,7 @@ const Dashboard = () => {
                       {!cameraStream && !capturedPhoto && (
                         <button
                           onClick={() => startCamera()}
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm"
+                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors"
                         >
                           Start Camera
                         </button>
@@ -1125,7 +1126,7 @@ const Dashboard = () => {
                           >
                             Retake
                           </button>
-                          <button className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm">
+                          <button className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors">
                             Use Photo
                           </button>
                         </>
@@ -1228,7 +1229,7 @@ const Dashboard = () => {
                     <button
                       onClick={() => verifyPdfInputRef.current?.click()}
                       disabled={loading}
-                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#0e2b5f] text-blue-300 border border-blue-500/30 hover:bg-[#0e2b5f]/80 text-sm disabled:opacity-50"
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm disabled:opacity-50 transition-colors"
                     >
                       {verifyPdfFiles.length > 0
                         ? "Add More PDFs"
@@ -1412,7 +1413,7 @@ const Dashboard = () => {
 
           {/* Pending Requests Section (Admin Only) */}
           {active === "pending-requests" && role === "admin" && (
-            <div className="bg-white/[0.03] rounded-xl p-4 md:p-6">
+            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-6 backdrop-blur-sm">
               <div className="text-lg font-medium text-slate-100 mb-5 flex items-center gap-3">
                 Pending University Requests
                 <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-full">
@@ -1586,11 +1587,11 @@ const Dashboard = () => {
 
           {/* Contact Section */}
           {active === "contact" && (
-            <div className="bg-white/[0.03] rounded-xl p-6">
+            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-6 backdrop-blur-sm">
               <div className="text-lg font-medium text-slate-100 mb-3">
                 Contact Us
               </div>
-              <div className="h-56 rounded-lg border border-white/10 bg-white/[0.02] flex items-center justify-center text-slate-400">
+              <div className="h-56 rounded-lg border border-violet-500/20 bg-violet-500/[0.02] flex items-center justify-center text-slate-400">
                 Contact content
               </div>
             </div>
@@ -1598,13 +1599,9 @@ const Dashboard = () => {
         </section>
 
         {/* Sticky footer */}
-        <footer className="h-14 border-t border-white/10 px-6 flex items-center justify-between bg-[#0b0f1a]/80 backdrop-blur">
-          <div className="text-xs text-slate-400">GA4 - Findly</div>
-          <div className="flex gap-2">
-            <button className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-slate-300 bg-white/5">
-              New conversation
-            </button>
-          </div>
+        <footer className="h-14 border-t border-white/10 px-6 flex items-center justify-between bg-[#0a0a10]/80 backdrop-blur">
+          <div className="text-md font-semibold text-slate-400">VeriFy</div>
+          <div className="flex gap-2"></div>
         </footer>
       </main>
     </div>
