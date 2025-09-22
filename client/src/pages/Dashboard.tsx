@@ -11,6 +11,105 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
+"use client"
+
+import { TrendingUp } from "lucide-react"
+import { LabelList, RadialBar, RadialBarChart } from "recharts"
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+// Imports for the regular components (values)
+import {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+} from "@/components/ui/chart"
+
+// Type-only import for ChartConfig
+import type { ChartConfig } from "@/components/ui/chart"
+
+"use client";
+
+
+
+export const description = "A radial chart with a label";
+
+
+
+
+
+const chartData = [
+  { type: "Issued Documents", value: 275, fill: "#AF6CE7" },
+  { type: "Verified Documents", value: 200, fill: "#7756B4" },
+  { type: "Rejected Documents", value: 90, fill: "#21153D" },
+];
+
+const chartConfig = {
+  value: { label: "Documents" },
+  "Issued Documents": { label: "Issued Documents", color: "#AF6CE7" },
+  "Verified Documents": { label: "Verified Documents", color: "#7756B4" },
+  "Rejected Documents": { label: "Rejected Documents", color: "#21153D" },
+} satisfies ChartConfig;
+
+export function ChartRadialLabel() {
+  return (
+    <Card className="flex flex-col border border-white/10 rounded-xl bg-white/[0.03]">
+      <CardHeader className="items-center pb-0">
+        <CardTitle>Documents Status</CardTitle>
+        <CardDescription className="font-bold mt-5">Overview</CardDescription>
+        <CardDescription>universityName : MSIT</CardDescription>
+        <CardDescription>AISHE : 12345 </CardDescription>
+        <CardDescription>email : msitjanakpuri@gmail.com</CardDescription>
+        <CardDescription>publicAddress : KuchBhiChalega </CardDescription>
+        <CardDescription>letter : Nhi Hai</CardDescription>
+        <CardDescription>issuedDocuments : 275</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 pb-0">
+        <ChartContainer
+          config={chartConfig}
+          className="mx-auto aspect-square max-h-[250px]"
+        >
+          <RadialBarChart
+            width={250}
+            height={250}
+            data={chartData}
+            startAngle={-90}
+            endAngle={380}
+            innerRadius={30}
+            outerRadius={110}
+          >
+            <ChartTooltip
+              content={<ChartTooltipContent nameKey="type" />}
+            />
+            <RadialBar dataKey="value" background={{ fill: '#33294E' }}>
+              <LabelList
+                position="insideStart"
+                dataKey="type"
+                className="fill-white capitalize mix-blend-luminosity"
+                fontSize={15}
+              />
+            </RadialBar>
+          </RadialBarChart>
+        </ChartContainer>
+      </CardContent>
+      <CardFooter className="flex-col gap-2 text-sm">
+        <div className="flex items-center gap-2 leading-none font-medium text-purple-400">
+          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+        </div>
+        <div className="text-slate-400 leading-none">
+          Showing document stats
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}
+
 interface FilePreview {
   name: string;
   size: number;
@@ -818,6 +917,10 @@ const Dashboard = () => {
         {/* Content area */}
         <section className="md:w-full flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5 scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {/* Dashboard Section */}
+
+          
+          <ChartRadialLabel />
+
           {active === "dashboard" && (
             <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-5 backdrop-blur-sm">
               <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
