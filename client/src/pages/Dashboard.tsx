@@ -4,15 +4,12 @@ import { ABI } from "@/utils/ABI";
 import { useState, useRef, useEffect } from "react";
 import type React from "react";
 import { useWriteContract } from "wagmi";
-import {
-  getTransactionReceipt,
-  waitForTransactionReceipt,
-  type Config,
-} from "@wagmi/core";
+import { waitForTransactionReceipt } from "@wagmi/core";
 import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
 import { toast } from "sonner";
 import axios from "axios";
+import CreationItem from "@/component/CreationItem";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 ("use client");
@@ -48,12 +45,6 @@ import ScreenLoader from "@/component/ScreenLoader";
 
 export const description = "A radial chart with a label";
 
-const chartData = [
-  { type: "Rejected Documents", value: 90, fill: "#21153D" },
-  { type: "Verified Documents", value: 200, fill: "#7756B4" },
-  { type: "Issued Documents", value: 275, fill: "#AF6CE7" },
-];
-
 const chartConfig = {
   value: { label: "Documents" },
   "Rejected Documents": { label: "Rejected Documents", color: "#21153D" },
@@ -70,11 +61,6 @@ interface FilePreview {
   url?: string;
 }
 
-interface DocumentData {
-  certHash: string;
-  fileUrl: string;
-}
-
 type ActiveSection =
   | "dashboard"
   | "upload"
@@ -82,6 +68,27 @@ type ActiveSection =
   | "contact"
   | "pending-requests";
 type FacingMode = "user" | "environment";
+
+interface DocumentType {
+  _id: string; // or just 'id', depending on how your backend returns it
+  name: string;
+  enrollNo: string;
+  course: string;
+  year: string;
+  type: "pdf" | "png" | "jpg";
+  QrLink: string;
+  certHash: string;
+  issued: boolean;
+  issuedBy: string | UniversityType; // depending on whether you populate it
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UniversityType {
+  _id: string; // MongoDB document ID
+  universityName: string;
+  email: string;
+}
 
 const Dashboard = () => {
   const [active, setActive] = useState<ActiveSection>("dashboard");
@@ -94,7 +101,6 @@ const Dashboard = () => {
   const { writeContractAsync } = useWriteContract();
   const [role, setRole] = useState("");
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState<DocumentData[]>();
   const [entityDetails, setEntityDetails] = useState<any>(null);
 
   // Camera state for Verify section
@@ -112,7 +118,6 @@ const Dashboard = () => {
   const [verifyPdfPreviews, setVerifyPdfPreviews] = useState<string[]>([]);
   const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
   const [verifyResults, setVerifyResults] = useState<any[]>([]);
-  const [userId, setUserId] = useState<string>("");
   const [uploadResultsOpen, setUploadResultsOpen] = useState(false);
   const [uploadResults, setUploadResults] = useState<
     Array<{
@@ -134,6 +139,31 @@ const Dashboard = () => {
   );
   const [rejectLoading, setRejectLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [issuedDocuments, setIssuedDocuments] = useState<DocumentType[]>([]);
+  const [issuedDocsPage, setIssuedDocsPage] = useState(1);
+  const [issuedDocsHasNext, setIssuedDocsHasNext] = useState(true);
+  const [issuedDocsLoading, setIssuedDocsLoading] = useState(false);
+  const [issuedDocsTotal, setIssuedDocsTotal] = useState(0);
+  const [issuedDocsTotalPages, setIssuedDocsTotalPages] = useState(1);
+  const [issuedDocsLimit, setIssuedDocsLimit] = useState(5);
+
+  const chartData = [
+    {
+      type: "Rejected Documents",
+      value: issuedDocuments?.filter((doc) => doc.issued === false).length,
+      fill: "#21153D",
+    },
+    {
+      type: "Verified Documents",
+      value: issuedDocuments?.filter((doc) => doc.issued === true).length,
+      fill: "#7756B4",
+    },
+    {
+      type: "Issued Documents",
+      value: issuedDocuments?.length,
+      fill: "#AF6CE7",
+    },
+  ];
 
   useEffect(() => {
     if (role === "admin") {
@@ -199,6 +229,22 @@ const Dashboard = () => {
       );
     }
   };
+
+  useEffect(() => {
+    const getEntityDetails = async () => {
+      // Don't call until role is known and valid
+      if (!role || !["user", "university", "admin"].includes(role)) return;
+      try {
+        const response = await axiosInstance.get(`/${role}/getDetails`);
+        const data = response?.data?.data ?? response?.data;
+        setEntityDetails(data);
+      } catch (err) {
+        console.error("getEntityDetails error:", err);
+        toast.error("Failed to fetch entity details");
+      }
+    };
+    getEntityDetails();
+  }, [role]);
 
   // Handle reject university request - updated to work with modal
   const handleRejectRequest = async (reason: string) => {
@@ -288,7 +334,7 @@ const Dashboard = () => {
             )}
             {(role === "university" || role === "admin") && (
               <CardDescription className="text-xl font-semibold">
-                issuedDocuments : 275
+                issuedDocuments : {issuedDocuments?.length}
               </CardDescription>
             )}
           </CardHeader>
@@ -368,12 +414,67 @@ const Dashboard = () => {
     }
   }
 
+  // Paginated issued documents fetcher
+  const fetchIssuedDocuments = async (page = 1, limit = issuedDocsLimit) => {
+    if (issuedDocsLoading) return;
+    setIssuedDocsLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `/university/getAllIssuedDocuments?page=${page}&limit=${limit}`
+      );
+      if (response.status === 200) {
+        const { documents, pagination } = response.data || {};
+        setIssuedDocuments(documents || []); // replace (true pagination navigation)
+        if (pagination) {
+          setIssuedDocsHasNext(!!pagination.hasNext);
+          setIssuedDocsPage(pagination.page || page);
+          setIssuedDocsTotal(pagination.total || 0);
+          setIssuedDocsTotalPages(pagination.totalPages || 1);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch issued documents:", error);
+    } finally {
+      setIssuedDocsLoading(false);
+    }
+  };
+
+  // Refetch when role becomes available
+  useEffect(() => {
+    if (role === "university" || role === "admin") {
+      fetchIssuedDocuments(1, issuedDocsLimit);
+    }
+  }, [role, issuedDocsLimit]);
+
+  const goToIssuedPage = (page: number) => {
+    if (page < 1 || page > issuedDocsTotalPages || page === issuedDocsPage)
+      return;
+    fetchIssuedDocuments(page, issuedDocsLimit);
+  };
+
+  const buildIssuedPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const total = issuedDocsTotalPages;
+    const current = issuedDocsPage;
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      let start = Math.max(2, current - 1);
+      let end = Math.min(total - 1, current + 1);
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < total - 1) pages.push("...");
+      pages.push(total);
+    }
+    return pages;
+  };
+
   // Call getUserDetails when component mounts
   useEffect(() => {
     getUserDetails()
       .then((data) => {
         setRole(data?.role);
-        setUserId(data?.userId);
       })
       .catch((error) => {
         console.error("❌ Authentication error:", error);
@@ -620,7 +721,7 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Alice124nackcanxhjkgfcknsnsaajs12",
+          name: "Alice1dsadsadfsfhajkdsnfchjdsadsaknsnsaajs12",
           rollNo: "12ajcaak3",
           course: "B.Tezch",
           year: "2025",
@@ -628,7 +729,7 @@ const Dashboard = () => {
           cgpa: "9.1",
         },
         {
-          name: "Bob34aa43ajgsjaawjankassnsds",
+          name: "Bob34aa43ajddsadsadsacxzdssjaawjanfjdsknda",
           rollNo: "12kaz4",
           course: "B.Sc",
           year: "2025",
@@ -646,7 +747,7 @@ const Dashboard = () => {
         "/university/issueMany",
         formData
       );
-      setDocuments(data.documents);
+      // we'll refresh after finalize to reflect new docs
       const certHashes: string[] = data.documents.map(
         (doc: any) => doc.certHash
       );
@@ -671,7 +772,6 @@ const Dashboard = () => {
           documents: data.documents,
         }
       );
-      console.log(final);
 
       // Build results for popup
       const resultsArray = Array.isArray(final?.results)
@@ -706,6 +806,9 @@ const Dashboard = () => {
       } else {
         toast.success("Documents finalized successfully");
       }
+
+      // Refresh issued documents list after successful upload and finalize
+      fetchIssuedDocuments(1);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       setMessage(msg);
@@ -894,7 +997,7 @@ const Dashboard = () => {
           <div className="w-6 h-6 rounded bg-white/10" />
           <span
             onClick={() => navigate("/")}
-            className="font-semibold tracking-wide"
+            className="font-semibold tracking-wide hover:cursor-pointer"
           >
             VeriFy
           </span>
@@ -1024,6 +1127,101 @@ const Dashboard = () => {
           {/* Dashboard Section */}
 
           {active === "dashboard" && <ChartRadialLabel />}
+
+          {active === "dashboard" && (
+            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-6 backdrop-blur-sm">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <div className="text-lg font-medium text-slate-100">
+                  Issued Documents
+                </div>
+                <div className="flex items-center gap-4 flex-wrap text-xs text-slate-400">
+                  <div>
+                    Page {issuedDocsPage} / {issuedDocsTotalPages}
+                  </div>
+                  <div>{issuedDocsTotal} total</div>
+                  <div className="flex items-center gap-1 text-slate-300">
+                    <label htmlFor="issued-limit" className="text-slate-400">
+                      Per page
+                    </label>
+                    <select
+                      id="issued-limit"
+                      value={issuedDocsLimit}
+                      onChange={(e) =>
+                        setIssuedDocsLimit(parseInt(e.target.value, 10))
+                      }
+                      className="bg-[#1e152e] border border-violet-500/30 rounded-md px-2 py-1 text-xs text-violet-200 focus:outline-none"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              {issuedDocsLoading && issuedDocuments.length === 0 && (
+                <div className="text-sm text-slate-400">Loading...</div>
+              )}
+              {issuedDocuments.length === 0 && !issuedDocsLoading && (
+                <div className="text-sm text-slate-400">No documents yet.</div>
+              )}
+              <div className="space-y-3">
+                {issuedDocuments.map((doc) => (
+                  <CreationItem key={doc._id} item={doc as any} />
+                ))}
+              </div>
+              {/* Pagination controls */}
+              {issuedDocsTotalPages > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => goToIssuedPage(issuedDocsPage - 1)}
+                      disabled={issuedDocsPage === 1 || issuedDocsLoading}
+                      className="px-3 py-1.5 rounded-md border border-violet-500/30 bg-[#1e152e] text-violet-300 hover:bg-[#2c223c] disabled:opacity-40 text-xs"
+                    >
+                      Prev
+                    </button>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {buildIssuedPageNumbers().map((p, idx) =>
+                        typeof p === "number" ? (
+                          <button
+                            key={idx}
+                            onClick={() => goToIssuedPage(p)}
+                            disabled={p === issuedDocsPage || issuedDocsLoading}
+                            className={`px-3 py-1.5 rounded-md text-xs border transition ${
+                              p === issuedDocsPage
+                                ? "bg-violet-500/30 border-violet-500/50 text-violet-100"
+                                : "border-violet-500/20 bg-[#1e152e] text-violet-300 hover:bg-[#2c223c]"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ) : (
+                          <span
+                            key={idx}
+                            className="px-2 text-slate-500 text-xs select-none"
+                          >
+                            {p}
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <button
+                      onClick={() => goToIssuedPage(issuedDocsPage + 1)}
+                      disabled={!issuedDocsHasNext || issuedDocsLoading}
+                      className="px-3 py-1.5 rounded-md border border-violet-500/30 bg-[#1e152e] text-violet-300 hover:bg-[#2c223c] disabled:opacity-40 text-xs"
+                    >
+                      Next
+                    </button>
+                  </div>
+                  {issuedDocsLoading && (
+                    <div className="text-xs text-slate-400">
+                      Fetching page...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Upload Section */}
           {(role === "university" || role === "admin") &&
@@ -1786,14 +1984,6 @@ const Dashboard = () => {
                       </a>
                     </div>
                     <div className="shrink-0 flex gap-2">
-                      <a
-                        href={r.finalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-xs"
-                      >
-                        Open
-                      </a>
                       <a
                         href={r.finalUrl}
                         download

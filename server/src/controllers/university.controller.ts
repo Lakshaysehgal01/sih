@@ -116,6 +116,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
       res.status(400).json({ message: "No files uploaded" });
       return;
     }
+
     const metadataArray = JSON.parse(req.body.metadata);
     const documents: any[] = [];
     for (let i = 0; i < (req.files as Express.Multer.File[]).length; i++) {
@@ -150,6 +151,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
         issuedBy: req.user?.id,
         certHash,
       });
+
       documents.push({
         certHash,
         fileUrl: uploaded.secure_url,
@@ -167,6 +169,16 @@ export const finializeMultiple = async (req: Request, res: Response) => {
     const { documents } = req.body;
     if (!documents || !Array.isArray(documents)) {
       res.status(400).json({ error: "documents array required" });
+      return;
+    }
+    const universityId = req.user?.id;
+    if (!universityId) {
+      res.status(400).json({ message: "University ID not found in request" });
+      return;
+    }
+    const findedUniversity = await University.findById(universityId);
+    if (!findedUniversity) {
+      res.status(404).json({ message: "University not found" });
       return;
     }
     const results = [];
@@ -215,11 +227,15 @@ export const finializeMultiple = async (req: Request, res: Response) => {
           stream.end(Buffer.from(pdfBytes));
         }
       );
-      await Documents.findOneAndUpdate(
+      const document = await Documents.findOneAndUpdate(
         { certHash },
         { QrLink: finalUpload.secure_url, issued: true },
         { new: true }
       );
+
+      if (!document) continue;
+      findedUniversity.issuedDocuments.push(document._id);
+      await findedUniversity.save();
 
       results.push({
         certHash,
@@ -251,6 +267,71 @@ export const getUniversityDetails = async (req: Request, res: Response) => {
     }
     res.status(200).json({ university });
   } catch (err) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getAllIssuedDocuments = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = (req.user as any)?.role;
+
+    if (!userId) {
+      res.status(400).json({ message: "User ID not found in request" });
+      return;
+    }
+
+    // Query params for pagination
+    const pageRaw = Array.isArray(req.query.page)
+      ? req.query.page[0]
+      : (req.query.page as string | undefined);
+    const limitRaw = Array.isArray(req.query.limit)
+      ? req.query.limit[0]
+      : (req.query.limit as string | undefined);
+
+    let page = parseInt(String(pageRaw || "1"), 10);
+    let limit = parseInt(String(limitRaw || "10"), 10);
+
+    if (isNaN(page) || page < 1) page = 1;
+    if (isNaN(limit) || limit < 1) limit = 10;
+    const MAX_LIMIT = 100;
+    if (limit > MAX_LIMIT) limit = MAX_LIMIT;
+
+    // Build filter based on user role
+    let filter: any = {};
+    if (userRole === "admin") {
+      // Admin can see all documents
+      filter = {};
+    } else {
+      // University can only see their own documents
+      filter = { issuedBy: userId };
+    }
+
+    const total = await Documents.countDocuments(filter);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    if (page > totalPages) page = totalPages; // clamp page if it exceeds
+
+    const skip = (page - 1) * limit;
+
+    const documents = await Documents.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("issuedBy", "universityName email");
+
+    res.status(200).json({
+      documents,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    });
+  } catch (err) {
+    console.error("❌ getAllIssuedDocuments error", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };

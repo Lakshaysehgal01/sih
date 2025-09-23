@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { is } from "zod/locales";
 
 const documentsSchema = new Schema(
   {
@@ -42,5 +43,7 @@ const documentsSchema = new Schema(
   },
   { timestamps: true }
 );
+
+documentsSchema.index({ issuedBy: 1 });
 
 export const Documents = model("Documents", documentsSchema);
