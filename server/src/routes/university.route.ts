@@ -4,6 +4,7 @@ import { protect } from "../middleware/auth.middleware.js";
 import {
   // finialize,
   finializeMultiple,
+  getAllIssuedDocuments,
   getUniversityDetails,
   // issueDocument,
   issueManyDocuments,
@@ -34,5 +35,11 @@ router.post(
 );
 
 router.get("/getDetails", protect("university", "admin"), getUniversityDetails);
+
+router.get(
+  "/getAllIssuedDocuments",
+  protect("university", "admin"),
+  getAllIssuedDocuments
+);
 
 export default router;
