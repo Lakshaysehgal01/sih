@@ -4,7 +4,11 @@ import { ABI } from "@/utils/ABI";
 import { useState, useRef, useEffect } from "react";
 import type React from "react";
 import { useWriteContract } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import {
+  getTransactionReceipt,
+  waitForTransactionReceipt,
+  type Config,
+} from "@wagmi/core";
 import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
 import { toast } from "sonner";
@@ -138,6 +142,27 @@ const Dashboard = () => {
       );
     }
   };
+
+  async function waitForTransaction(config: Config, hash: `0x${string}`) {
+    const maxAttempts = 20;
+    const delay = 10000; // 10 seconds
+
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const receipt = await getTransactionReceipt(config, { hash });
+        if (receipt) {
+          return receipt;
+        }
+      } catch (error) {
+        console.log(`Attempt ${i + 1}: Transaction not yet mined`);
+      }
+
+      // Wait before next attempt
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    throw new Error("Transaction not mined within timeout period");
+  }
 
   // Handle reject university request - updated to work with modal
   const handleRejectRequest = async (reason: string) => {
@@ -457,16 +482,16 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Alice1246xhjs12",
-          rollNo: "123",
-          course: "B.Tech",
+          name: "Alice124nackcanxhjkgfcknsnsaajs12",
+          rollNo: "12ajcaak3",
+          course: "B.Tezch",
           year: "2025",
           university: "ABC University",
           cgpa: "9.1",
         },
         {
-          name: "Bob3443gsjaasds",
-          rollNo: "124",
+          name: "Bob34aa43ajgsjaawjankassnsds",
+          rollNo: "12kaz4",
           course: "B.Sc",
           year: "2025",
           university: "XYZ University",
@@ -499,6 +524,9 @@ const Dashboard = () => {
       });
       const transactionReceipt = await waitForTransactionReceipt(config, {
         hash: res,
+        pollingInterval: 7 * 1000, // Poll every 30 seconds instead of 10
+        timeout: 300_000, // Extended to 5 minutes since we're polling less frequently
+        retryCount: 3, // Reduced retry count to avoid hitting rate limits
       });
       const { data: final } = await axiosInstance.post(
         "/university/finializeMany",
@@ -506,6 +534,7 @@ const Dashboard = () => {
           documents: data.documents,
         }
       );
+      console.log(final);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       console.error("error");

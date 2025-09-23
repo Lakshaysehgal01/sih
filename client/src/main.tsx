@@ -12,26 +12,26 @@ import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <DrawerProvider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider
-            theme={darkTheme({
-              accentColor: "#7b3fe4",
-              accentColorForeground: "white",
-              borderRadius: "large",
-              fontStack: "system",
-              overlayBlur: "small",
-            })}
-            coolMode
-          >
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </DrawerProvider>
-  </StrictMode>
+  // <StrictMode>
+  <DrawerProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: "#7b3fe4",
+            accentColorForeground: "white",
+            borderRadius: "large",
+            fontStack: "system",
+            overlayBlur: "small",
+          })}
+          coolMode
+        >
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  </DrawerProvider>
+  // </StrictMode>
 );
