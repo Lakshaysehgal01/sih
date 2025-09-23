@@ -70,11 +70,7 @@ const SignUp: React.FC = () => {
           fullName: data.fullName,
         };
 
-        console.log("User Data:", userData);
-
         const response = await axiosInstance.post("/auth/signup", userData);
-
-        console.log("Signup Response:", response);
 
         if (response?.status === 201) {
           toast.success("Registration successful! You can now log in.");

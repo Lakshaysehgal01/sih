@@ -15,7 +15,6 @@ export const protect =
       req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
-      console.log("❌ No token provided");
       return res.status(401).json({
         message: "Not authenticated",
         debug: {
@@ -31,16 +30,8 @@ export const protect =
         process.env.JWT_SECRET as string
       ) as AuthPayload;
 
-      console.log("✅ Token decoded successfully:", {
-        userId: decoded.userId,
-        role: decoded.role,
-      });
-
       // Check role
       if (allowedRoles.length && !allowedRoles.includes(decoded.role)) {
-        console.log(
-          `❌ Role mismatch: Required ${allowedRoles}, Got ${decoded.role}`
-        );
         return res
           .status(403)
           .json({ message: "Forbidden: insufficient role" });
@@ -51,7 +42,6 @@ export const protect =
 
       next();
     } catch (err) {
-      console.log("❌ Token verification failed:", err);
       return res.status(401).json({ message: "Invalid or expired token" });
     }
   };

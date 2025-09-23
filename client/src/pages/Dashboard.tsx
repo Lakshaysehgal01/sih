@@ -314,14 +314,14 @@ const Dashboard = () => {
               </CardDescription>
             )}
             <CardDescription className="text-xl font-semibold">
-              email : {entityDetails?.[role]?.email}
+              Email : {entityDetails?.[role]?.email}
             </CardDescription>
             <CardDescription className="text-xl font-semibold">
-              publicAddress : {entityDetails?.[role]?.publicAddress}
+              Public Address : {entityDetails?.[role]?.publicAddress}
             </CardDescription>
             {role === "university" && (
               <CardDescription className="text-xl font-semibold">
-                letter :
+                Letter :
                 <button
                   onClick={() =>
                     window.open(entityDetails?.[role]?.letter, "_blank")
@@ -334,7 +334,7 @@ const Dashboard = () => {
             )}
             {(role === "university" || role === "admin") && (
               <CardDescription className="text-xl font-semibold">
-                issuedDocuments : {issuedDocuments?.length}
+                IssuedDocuments : {issuedDocuments?.length}
               </CardDescription>
             )}
           </CardHeader>
@@ -802,7 +802,6 @@ const Dashboard = () => {
         }));
         setUploadResults(mapped);
         setUploadResultsOpen(true);
-        console.log("Mapped results:", uploadResults);
       } else {
         toast.success("Documents finalized successfully");
       }

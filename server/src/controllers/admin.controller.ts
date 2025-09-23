@@ -148,7 +148,6 @@ export const addUniversity = async (req: Request, res: Response) => {
     const hash = tx.hash;
     res.status(201).json(hash);
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       message: "Internal server error",
     });
@@ -163,7 +162,6 @@ export const removeUniversity = async (req: Request, res: Response) => {
     const hash = tx.hash;
     res.status(201).json(hash);
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       message: "Internal server error",
     });
