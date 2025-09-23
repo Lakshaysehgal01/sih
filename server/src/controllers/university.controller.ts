@@ -5,6 +5,7 @@ import QRCODE from "qrcode";
 import { PDFDocument } from "pdf-lib";
 import type { UploadApiResponse } from "cloudinary";
 import { Documents } from "../models/issueDocument.model.js";
+import { University } from "../models/university.model.js";
 
 // export const issueDocument = async (req: Request, res: Response) => {
 //   try {
@@ -229,6 +230,27 @@ export const finializeMultiple = async (req: Request, res: Response) => {
     res.status(201).json({ message: "Documents finalized", results });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUniversityDetails = async (req: Request, res: Response) => {
+  try {
+    const universityId = req.user?.id;
+    console.log(universityId);
+    if (!universityId) {
+      res.status(400).json({ message: "University ID not found in request" });
+      return;
+    }
+    const university = await University.findById(universityId).select(
+      "-__v -createdAt -updatedAt -password"
+    );
+    if (!university) {
+      res.status(404).json({ message: "University not found" });
+      return;
+    }
+    res.status(200).json({ university });
+  } catch (err) {
     res.status(500).json({ message: "Internal server error" });
   }
 };

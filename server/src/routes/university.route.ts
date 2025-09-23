@@ -4,6 +4,7 @@ import { protect } from "../middleware/auth.middleware.js";
 import {
   // finialize,
   finializeMultiple,
+  getUniversityDetails,
   // issueDocument,
   issueManyDocuments,
 } from "../controllers/university.controller.js";
@@ -31,5 +32,7 @@ router.post(
   protect("university", "admin"),
   finializeMultiple
 );
+
+router.get("/getDetails", protect("university", "admin"), getUniversityDetails);
 
 export default router;

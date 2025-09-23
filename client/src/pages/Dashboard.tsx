@@ -11,6 +11,52 @@ import { toast } from "sonner";
 import axios from "axios";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
+("use client");
+
+import { TrendingUp } from "lucide-react";
+import {
+  LabelList,
+  RadialBar,
+  RadialBarChart,
+  ResponsiveContainer,
+} from "recharts";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+// Imports for the regular components (values)
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+
+// Type-only import for ChartConfig
+import type { ChartConfig } from "@/components/ui/chart";
+import ScreenLoader from "@/component/ScreenLoader";
+
+("use client");
+
+export const description = "A radial chart with a label";
+
+const chartData = [
+  { type: "Rejected Documents", value: 90, fill: "#21153D" },
+  { type: "Verified Documents", value: 200, fill: "#7756B4" },
+  { type: "Issued Documents", value: 275, fill: "#AF6CE7" },
+];
+
+const chartConfig = {
+  value: { label: "Documents" },
+  "Rejected Documents": { label: "Rejected Documents", color: "#21153D" },
+  "Verified Documents": { label: "Verified Documents", color: "#7756B4" },
+  "Issued Documents": { label: "Issued Documents", color: "#AF6CE7" },
+} satisfies ChartConfig;
+
 interface FilePreview {
   name: string;
   size: number;
@@ -45,6 +91,7 @@ const Dashboard = () => {
   const [role, setRole] = useState("");
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentData[]>();
+  const [entityDetails, setEntityDetails] = useState<any>(null);
 
   // Camera state for Verify section
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -61,6 +108,16 @@ const Dashboard = () => {
   const [verifyPdfPreviews, setVerifyPdfPreviews] = useState<string[]>([]);
   const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
   const [verifyResults, setVerifyResults] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string>("");
+  const [uploadResultsOpen, setUploadResultsOpen] = useState(false);
+  const [uploadResults, setUploadResults] = useState<
+    Array<{
+      fileName: string;
+      finalUrl: string;
+      certHash: string;
+    }>
+  >([]);
+  const [verifySummaryOpen, setVerifySummaryOpen] = useState(false);
 
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -139,6 +196,22 @@ const Dashboard = () => {
     }
   };
 
+  useEffect(() => {
+    const getEntityDetails = async () => {
+      // Don't call until role is known and valid
+      if (!role || !["user", "university", "admin"].includes(role)) return;
+      try {
+        const response = await axiosInstance.get(`/${role}/getDetails`);
+        const data = response?.data?.data ?? response?.data;
+        setEntityDetails(data);
+      } catch (err) {
+        console.error("getEntityDetails error:", err);
+        toast.error("Failed to fetch entity details");
+      }
+    };
+    getEntityDetails();
+  }, [role]);
+
   // Handle reject university request - updated to work with modal
   const handleRejectRequest = async (reason: string) => {
     if (!selectedRequestId) return;
@@ -192,17 +265,101 @@ const Dashboard = () => {
     }
   };
 
-  async function getUserDetails(): Promise<string> {
+  function ChartRadialLabel() {
+    return (
+      <>
+        <Card className="flex w-full h-fit flex-col md:flex-row justify-between gap-4 border border-white/10 rounded-xl bg-white/[0.03] overflow-hidden">
+          <CardHeader className="w-full md:w-1/2 pb-0">
+            <CardTitle className="capitalize">{role} Status</CardTitle>
+            <CardDescription className="text-xl font-semibold capitalize">
+              {role} Name : {entityDetails?.[role]?.universityName}{" "}
+            </CardDescription>
+            {role === "university" && (
+              <CardDescription className="text-xl font-semibold">
+                AISHE : {entityDetails?.[role]?.AISHE}{" "}
+              </CardDescription>
+            )}
+            <CardDescription className="text-xl font-semibold">
+              email : {entityDetails?.[role]?.email}
+            </CardDescription>
+            <CardDescription className="text-xl font-semibold">
+              publicAddress : {entityDetails?.[role]?.publicAddress}
+            </CardDescription>
+            {role === "university" && (
+              <CardDescription className="text-xl font-semibold">
+                letter :
+                <button
+                  onClick={() =>
+                    window.open(entityDetails?.[role]?.letter, "_blank")
+                  }
+                  className="ml-2 px-2 py-1 rounded-md border border-violet-500/30 bg-[#1e152c] text-violet-300 hover:bg-[#2c223c] transition-colors"
+                >
+                  {entityDetails?.[role]?.universityName} Letter
+                </button>
+              </CardDescription>
+            )}
+            {(role === "university" || role === "admin") && (
+              <CardDescription className="text-xl font-semibold">
+                issuedDocuments : 275
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="w-full md:w-1/2 pb-0 overflow-hidden">
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto w-full h-56 sm:h-64 md:h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart
+                  data={chartData}
+                  startAngle={-90}
+                  endAngle={380}
+                  innerRadius={30}
+                  outerRadius={110}
+                >
+                  <ChartTooltip
+                    content={<ChartTooltipContent nameKey="type" />}
+                  />
+                  <RadialBar dataKey="value" background={{ fill: "#33294E" }}>
+                    <LabelList
+                      position="insideStart"
+                      dataKey="type"
+                      className="fill-white capitalize mix-blend-luminosity"
+                      fontSize={15}
+                    />
+                  </RadialBar>
+                </RadialBarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+        <CardFooter className="flex-col gap-2 text-sm">
+          <div className="flex items-center gap-2 leading-none font-medium text-purple-400">
+            Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+          </div>
+          <div className="text-slate-400 leading-none">
+            Showing document stats
+          </div>
+        </CardFooter>
+      </>
+    );
+  }
+
+  interface UserDetails {
+    role: string;
+    userId: string;
+    [key: string]: any;
+  }
+
+  async function getUserDetails(): Promise<UserDetails> {
     try {
       const response = await axiosInstance.get("/auth/api/me", {
         withCredentials: true,
       });
 
       // axiosInstance already handles the response parsing
-      if (response.status === 200 && response.data) {
-        const userRole =
-          response.data.user?.role || response.data.role || "user";
-        return userRole;
+      if (response.status === 200 && response.data && response.data.user) {
+        return response.data.user;
       }
 
       throw new Error("Invalid response format");
@@ -226,8 +383,9 @@ const Dashboard = () => {
   // Call getUserDetails when component mounts
   useEffect(() => {
     getUserDetails()
-      .then((role: string) => {
-        setRole(role);
+      .then((data) => {
+        setRole(data?.role);
+        setUserId(data?.userId);
       })
       .catch((error) => {
         console.error("❌ Authentication error:", error);
@@ -389,10 +547,10 @@ const Dashboard = () => {
         formData
       );
 
-      console.log("Verification response", response.data);
-
       toast.success(response?.data?.message);
       setVerifyResults(response.data);
+      setVerifyLoading(false);
+      setLoading(true);
 
       setTimeout(async () => {
         try {
@@ -400,16 +558,13 @@ const Dashboard = () => {
           const uploadResult = await axios.get(
             `https://certificate-verifier-v1-1.onrender.com/results/${session_id}`
           );
-          console.log("Upload result", uploadResult.data);
+          setVerifyResults(uploadResult.data || []);
+          setLoading(false);
         } catch (err) {
           console.error("Failed to fetch detailed results:", err);
           setLoading(false);
         }
       }, 30000);
-
-      setLoading(false);
-
-      // --- Summary toast ---
     } catch (error: any) {
       console.error("Failed to verify documents:", error);
       toast.error("Failed to verify documents");
@@ -444,6 +599,26 @@ const Dashboard = () => {
     };
   }, [verifyPdfPreviews]);
 
+  // Open verification summary popup once results contain summary/details
+  useEffect(() => {
+    const vr: any = verifyResults as any;
+    if (
+      vr &&
+      typeof vr === "object" &&
+      (vr.summary || vr.accepted_certificates || vr.rejected_certificates)
+    ) {
+      setVerifySummaryOpen(true);
+    }
+  }, [verifyResults]);
+
+  const toAbsoluteDownload = (path?: string) =>
+    path
+      ? path.startsWith("http")
+        ? path
+        : `https://certificate-verifier-v1-1.onrender.com${path}`
+      : "";
+
+  // Handle dropzone drag events
   const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     handlePickedFiles(e.dataTransfer?.files);
@@ -457,7 +632,7 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Alice1246xhjs12",
+          name: "Alicecncjxfdsbfflkkjjfdssdjsknasjz",
           rollNo: "123",
           course: "B.Tech",
           year: "2025",
@@ -465,7 +640,7 @@ const Dashboard = () => {
           cgpa: "9.1",
         },
         {
-          name: "Bob3443gsjaasds",
+          name: "Bobfbdsjkndfsfjkddaskjsafkdsakljashvcx",
           rollNo: "124",
           course: "B.Sc",
           year: "2025",
@@ -483,7 +658,6 @@ const Dashboard = () => {
         "/university/issueMany",
         formData
       );
-      console.log(data.documents);
       setDocuments(data.documents);
       const certHashes: string[] = data.documents.map(
         (doc: any) => doc.certHash
@@ -497,7 +671,7 @@ const Dashboard = () => {
         functionName: "issueMultipleDocuments",
         args: [certHashes, fileUrls],
       });
-      const transactionReceipt = await waitForTransactionReceipt(config, {
+      await waitForTransactionReceipt(config, {
         hash: res,
       });
       const { data: final } = await axiosInstance.post(
@@ -506,9 +680,43 @@ const Dashboard = () => {
           documents: data.documents,
         }
       );
+      console.log(final);
+
+      // Build results for popup
+      const resultsArray = Array.isArray(final?.results)
+        ? final.results
+        : Array.isArray(final)
+        ? final
+        : [];
+
+      if (resultsArray.length) {
+        const nameByHash = new Map(
+          (data.documents || []).map((doc: any, idx: number) => [
+            doc.certHash,
+            files[idx]?.name ||
+              (typeof doc.fileUrl === "string"
+                ? doc.fileUrl.split("/").pop()
+                : undefined) ||
+              `Document ${idx + 1}`,
+          ])
+        );
+
+        const mapped = resultsArray.map((r: any, idx: number) => ({
+          fileName:
+            nameByHash.get(r.certHash) ||
+            files[idx]?.name ||
+            `Document ${idx + 1}`,
+          finalUrl: r.finalUrl,
+          certHash: r.certHash,
+        }));
+        setUploadResults(mapped);
+        setUploadResultsOpen(true);
+        console.log("Mapped results:", uploadResults);
+      } else {
+        toast.success("Documents finalized successfully");
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
-      console.error("error");
       setMessage(msg);
     } finally {
       setUploading(false);
@@ -693,7 +901,12 @@ const Dashboard = () => {
       >
         <div className="px-6 py-4 flex items-center gap-2 border-b border-white/10">
           <div className="w-6 h-6 rounded bg-white/10" />
-          <span className="font-semibold tracking-wide">VeriFy</span>
+          <span
+            onClick={() => navigate("/")}
+            className="font-semibold tracking-wide"
+          >
+            VeriFy
+          </span>
           <span className="ml-2 text-[10px] text-slate-400 px-2 py-0.5 rounded-full border border-white/10">
             Beta
           </span>
@@ -818,77 +1031,8 @@ const Dashboard = () => {
         {/* Content area */}
         <section className="md:w-full flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-5 scrollbar-thin scrollbar-thumb-[#30354d] scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {/* Dashboard Section */}
-          {active === "dashboard" && (
-            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-4 md:p-5 backdrop-blur-sm">
-              <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
-                <div className="min-w-0 w-full lg:w-auto">
-                  <div className="flex flex-wrap items-center gap-2 text-slate-300">
-                    <div className="w-2.5 h-2.5 rounded-full bg-violet-400" />
-                    <span className="font-medium truncate">
-                      Average engagement rate per month
-                    </span>
-                    <button className="text-slate-400 hover:text-slate-200 text-xs">
-                      ✎
-                    </button>
-                    <button className="text-slate-300 hover:text-slate-100 text-xs px-2 py-1 rounded-md border border-white/10">
-                      Add tag
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-3 text-sm text-slate-400">
-                    <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10" />
-                    <span className="truncate">joaquin+demo@findly.ai</span>
-                    <span className="hidden sm:inline">·</span>
-                    <span className="text-xs sm:text-sm">
-                      19 December, 13:27
-                    </span>
-                  </div>
-                  <div className="mt-3 text-slate-100">
-                    Average engagement rate per month
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:shrink-0">
-                  <button className="px-3 py-1.5 text-xs rounded-full bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] transition-colors">
-                    Update
-                  </button>
-                  <button className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-slate-300 bg-white/5 hover:bg-white/10 transition-colors">
-                    Export Summary
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-slate-200">
-                    ☆
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-red-300">
-                    🗑
-                  </button>
-                </div>
-              </div>
 
-              {/* Status card */}
-              <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <div className="w-6 h-6 rounded bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px]">
-                    F
-                  </div>
-                  <span className="font-medium">Findly</span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-lg border border-white/10 px-3 py-2 bg-white/[0.02]">
-                    <div className="text-slate-200 text-sm">Pre-processing</div>
-                    <div className="text-[11px] text-slate-400">
-                      Finished at 12/19/2023, 1:28:02 PM
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-white/10 px-3 py-2 bg-white/[0.02]">
-                    <div className="text-slate-200 text-sm">
-                      Generating metadata
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 text-[11px] text-amber-300/80">
-                  Results from GA4 - Findly, 19 December 13:27
-                </div>
-              </div>
-            </div>
-          )}
+          {active === "dashboard" && <ChartRadialLabel />}
 
           {/* Upload Section */}
           {(role === "university" || role === "admin") &&
@@ -1014,402 +1158,409 @@ const Dashboard = () => {
               </div>
             )}
           {/* Verify Section */}
-          {active === "verify" && (
-            <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-6 flex flex-col backdrop-blur-sm">
-              <div className="text-lg font-medium text-slate-100 mb-5">
-                Identity Verification
-              </div>
-
-              {cameraError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-                  {cameraError}
+          {active === "verify" &&
+            (loading ? (
+              <ScreenLoader show={loading} />
+            ) : (
+              <div className="bg-violet-500/[0.05] rounded-xl border border-violet-500/20 p-6 flex flex-col backdrop-blur-sm">
+                <div className="text-lg font-medium text-slate-100 mb-5">
+                  Identity Verification
                 </div>
-              )}
 
-              {/* Mode selector */}
-              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <label className="text-sm font-semibold text-slate-300">
-                  Mode
-                </label>
-                <select
-                  value={verifyMode}
-                  onChange={handleVerifyModeChange}
-                  className="w-full sm:w-auto bg-[#1e152e] border border-[#2c223c] rounded-md px-3 py-2 text-sm !text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-600"
-                >
-                  <option className="text-white bg-[#1e152e]" value="photo">
-                    Click a photo
-                  </option>
-                  <option className="text-white bg-[#1e152e]" value="pdf">
-                    Upload a PDF
-                  </option>
-                </select>
-              </div>
+                {cameraError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                    {cameraError}
+                  </div>
+                )}
 
-              {/* Photo Mode */}
-              {verifyMode === "photo" && (
-                <div className="flex flex-col gap-6">
-                  {/* Camera/Preview Area */}
-                  <div className="space-y-4">
-                    <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-                      {capturedPhoto ? (
-                        <img
-                          src={capturedPhoto}
-                          alt="Captured photo"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      ) : cameraStream ? (
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className="absolute inset-0 w-full h-full object-cover"
-                          onLoadedMetadata={() => {
-                            if (videoRef.current) {
-                              videoRef.current.play().catch(console.error);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-slate-400">
-                          <div className="text-center px-4">
-                            <div className="text-4xl mb-3">📷</div>
-                            <div className="font-medium">Camera Preview</div>
-                            <div className="text-xs mt-1">
-                              Click "Start Camera" to begin
+                {/* Mode selector */}
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <label className="text-sm font-semibold text-slate-300">
+                    Mode
+                  </label>
+                  <select
+                    value={verifyMode}
+                    onChange={handleVerifyModeChange}
+                    className="w-full sm:w-auto bg-[#1e152e] border border-[#2c223c] rounded-md px-3 py-2 text-sm !text-white font-semibold focus:outline-none focus:ring-2 focus:ring-violet-600"
+                  >
+                    <option className="text-white bg-[#1e152e]" value="photo">
+                      Click a photo
+                    </option>
+                    <option className="text-white bg-[#1e152e]" value="pdf">
+                      Upload a PDF
+                    </option>
+                  </select>
+                </div>
+
+                {/* Photo Mode */}
+                {verifyMode === "photo" && (
+                  <div className="flex flex-col gap-6">
+                    {/* Camera/Preview Area */}
+                    <div className="space-y-4">
+                      <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                        {capturedPhoto ? (
+                          <img
+                            src={capturedPhoto}
+                            alt="Captured photo"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : cameraStream ? (
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onLoadedMetadata={() => {
+                              if (videoRef.current) {
+                                videoRef.current.play().catch(console.error);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 w-full h-full flex items-center justify-center text-slate-400">
+                            <div className="text-center px-4">
+                              <div className="text-4xl mb-3">📷</div>
+                              <div className="font-medium">Camera Preview</div>
+                              <div className="text-xs mt-1">
+                                Click "Start Camera" to begin
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Camera Controls */}
+                      <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
+                        {!cameraStream && !capturedPhoto && (
+                          <button
+                            onClick={() => startCamera()}
+                            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors"
+                          >
+                            Start Camera
+                          </button>
+                        )}
+
+                        {cameraStream && !capturedPhoto && (
+                          <>
+                            <button
+                              onClick={capturePhoto}
+                              className="w-full sm:w-auto px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm"
+                            >
+                              📸 Capture
+                            </button>
+                            <button
+                              onClick={switchCamera}
+                              className="w-full sm:w-auto px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
+                              title="Switch Camera"
+                            >
+                              🔄 {facingMode === "user" ? "Back" : "Front"}
+                            </button>
+                            <button
+                              onClick={stopCamera}
+                              className="w-full sm:w-auto px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                            >
+                              Stop
+                            </button>
+                          </>
+                        )}
+
+                        {capturedPhoto && (
+                          <>
+                            <button
+                              onClick={retakePhoto}
+                              className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                            >
+                              Retake
+                            </button>
+                            <button className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors">
+                              Use Photo
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* PDF Mode */}
+                {verifyMode === "pdf" && (
+                  <div className="flex flex-col gap-4">
+                    <input
+                      ref={verifyPdfInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      multiple
+                      onChange={handleVerifyPdfChange}
+                      className="hidden"
+                    />
+
+                    {/* PDF Preview Area */}
+                    {verifyPdfFiles.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Selected Files Display */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {verifyPdfFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="relative group border border-white/10 rounded-lg p-3 bg-white/[0.02]"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="text-2xl">📄</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-slate-200 truncate">
+                                    {file.name}
+                                  </div>
+                                  <div className="text-xs text-slate-400">
+                                    {Math.round(file.size / 1024)} KB
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => removeVerifyPdf(index)}
+                                  disabled={verifyLoading}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all disabled:opacity-50"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L9 10.586l-4.293 4.293a1 1 0 11-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+
+                              {/* PDF Preview */}
+                              {verifyPdfPreviews[index] && (
+                                <div className="mt-3 relative aspect-[3/4] rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden">
+                                  <embed
+                                    src={verifyPdfPreviews[index]}
+                                    type="application/pdf"
+                                    className="absolute inset-0 w-full h-full"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Add More Files Button */}
+                          <div
+                            onClick={() => verifyPdfInputRef.current?.click()}
+                            className="border-2 border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-white/30 hover:bg-white/[0.02] transition-colors min-h-[200px]"
+                          >
+                            <div className="text-4xl text-slate-400 mb-2">
+                              +
+                            </div>
+                            <div className="text-sm text-slate-400 text-center">
+                              Add more PDFs
                             </div>
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex items-center justify-center">
+                        <div className="text-slate-400 text-center px-4">
+                          <div className="text-4xl mb-3">📄</div>
+                          <div className="font-medium">
+                            Verify Multiple PDFs
+                          </div>
+                          <div className="text-xs mt-1">
+                            Choose one or more PDF files to verify
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Camera Controls */}
+                    {/* PDF Action Buttons */}
                     <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
-                      {!cameraStream && !capturedPhoto && (
-                        <button
-                          onClick={() => startCamera()}
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors"
-                        >
-                          Start Camera
-                        </button>
-                      )}
-
-                      {cameraStream && !capturedPhoto && (
+                      <button
+                        onClick={() => verifyPdfInputRef.current?.click()}
+                        disabled={loading}
+                        className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm disabled:opacity-50 transition-colors"
+                      >
+                        {verifyPdfFiles.length > 0
+                          ? "Add More PDFs"
+                          : "Choose PDFs"}
+                      </button>
+                      {verifyPdfFiles.length > 0 && (
                         <>
                           <button
-                            onClick={capturePhoto}
-                            className="w-full sm:w-auto px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm"
+                            onClick={handleVerifyPdfSubmit}
+                            disabled={verifyLoading}
+                            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm disabled:opacity-50 flex items-center gap-2"
                           >
-                            📸 Capture
+                            {verifyLoading && (
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            )}
+                            {verifyLoading
+                              ? "Verifying..."
+                              : `🔍 Verify ${verifyPdfFiles.length} Document${
+                                  verifyPdfFiles.length > 1 ? "s" : ""
+                                }`}
                           </button>
                           <button
-                            onClick={switchCamera}
-                            className="w-full sm:w-auto px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm"
-                            title="Switch Camera"
+                            onClick={() => {
+                              verifyPdfPreviews.forEach((url) =>
+                                URL.revokeObjectURL(url)
+                              );
+                              setVerifyPdfFiles([]);
+                              setVerifyPdfPreviews([]);
+                              setVerifyResults([]);
+                            }}
+                            disabled={verifyLoading}
+                            className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm disabled:opacity-50"
                           >
-                            🔄 {facingMode === "user" ? "Back" : "Front"}
-                          </button>
-                          <button
-                            onClick={stopCamera}
-                            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
-                          >
-                            Stop
-                          </button>
-                        </>
-                      )}
-
-                      {capturedPhoto && (
-                        <>
-                          <button
-                            onClick={retakePhoto}
-                            className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
-                          >
-                            Retake
-                          </button>
-                          <button className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm transition-colors">
-                            Use Photo
+                            Clear All
                           </button>
                         </>
                       )}
                     </div>
-                  </div>
-                </div>
-              )}
 
-              {/* PDF Mode */}
-              {verifyMode === "pdf" && (
-                <div className="flex flex-col gap-4">
-                  <input
-                    ref={verifyPdfInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    multiple
-                    onChange={handleVerifyPdfChange}
-                    className="hidden"
-                  />
+                    {/* Verification Results */}
+                    {verifyResults.length > 0 && (
+                      <div className="mt-6 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-medium text-slate-100">
+                            Verification Results
+                          </h3>
+                          <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">
+                            {verifyResults.filter((r) => r.isValid).length}/
+                            {verifyResults.length} Valid
+                          </span>
+                        </div>
 
-                  {/* PDF Preview Area */}
-                  {verifyPdfFiles.length > 0 ? (
-                    <div className="space-y-4">
-                      {/* Selected Files Display */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {verifyPdfFiles.map((file, index) => (
+                        {verifyResults.map((result, index) => (
                           <div
                             key={index}
-                            className="relative group border border-white/10 rounded-lg p-3 bg-white/[0.02]"
+                            className={`p-4 rounded-lg border ${
+                              result.isValid
+                                ? "bg-green-500/10 border-green-500/20"
+                                : "bg-red-500/10 border-red-500/20"
+                            }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="text-2xl">📄</div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-200 truncate">
-                                  {file.name}
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                  {Math.round(file.size / 1024)} KB
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => removeVerifyPdf(index)}
-                                disabled={verifyLoading}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all disabled:opacity-50"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-
-                            {/* PDF Preview */}
-                            {verifyPdfPreviews[index] && (
-                              <div className="mt-3 relative aspect-[3/4] rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden">
-                                <embed
-                                  src={verifyPdfPreviews[index]}
-                                  type="application/pdf"
-                                  className="absolute inset-0 w-full h-full"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Add More Files Button */}
-                        <div
-                          onClick={() => verifyPdfInputRef.current?.click()}
-                          className="border-2 border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-white/30 hover:bg-white/[0.02] transition-colors min-h-[200px]"
-                        >
-                          <div className="text-4xl text-slate-400 mb-2">+</div>
-                          <div className="text-sm text-slate-400 text-center">
-                            Add more PDFs
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative w-full aspect-[3/4] sm:aspect-video rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex items-center justify-center">
-                      <div className="text-slate-400 text-center px-4">
-                        <div className="text-4xl mb-3">📄</div>
-                        <div className="font-medium">Verify Multiple PDFs</div>
-                        <div className="text-xs mt-1">
-                          Choose one or more PDF files to verify
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PDF Action Buttons */}
-                  <div className="grid grid-cols-1 sm:auto-cols-max sm:grid-flow-col gap-2 sm:gap-3">
-                    <button
-                      onClick={() => verifyPdfInputRef.current?.click()}
-                      disabled={loading}
-                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-sm disabled:opacity-50 transition-colors"
-                    >
-                      {verifyPdfFiles.length > 0
-                        ? "Add More PDFs"
-                        : "Choose PDFs"}
-                    </button>
-                    {verifyPdfFiles.length > 0 && (
-                      <>
-                        <button
-                          onClick={handleVerifyPdfSubmit}
-                          disabled={loading}
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {loading && (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          )}
-                          {loading
-                            ? "Verifying..."
-                            : `🔍 Verify ${verifyPdfFiles.length} Document${
-                                verifyPdfFiles.length > 1 ? "s" : ""
-                              }`}
-                        </button>
-                        <button
-                          onClick={() => {
-                            verifyPdfPreviews.forEach((url) =>
-                              URL.revokeObjectURL(url)
-                            );
-                            setVerifyPdfFiles([]);
-                            setVerifyPdfPreviews([]);
-                            setVerifyResults([]);
-                          }}
-                          disabled={loading}
-                          className="w-full sm:w-auto px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm disabled:opacity-50"
-                        >
-                          Clear All
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Verification Results */}
-                  {verifyResults.length > 0 && (
-                    <div className="mt-6 space-y-4">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-medium text-slate-100">
-                          Verification Results
-                        </h3>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">
-                          {verifyResults.filter((r) => r.isValid).length}/
-                          {verifyResults.length} Valid
-                        </span>
-                      </div>
-
-                      {verifyResults.map((result, index) => (
-                        <div
-                          key={index}
-                          className={`p-4 rounded-lg border ${
-                            result.isValid
-                              ? "bg-green-500/10 border-green-500/20"
-                              : "bg-red-500/10 border-red-500/20"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`mt-0.5 ${
-                                result.isValid
-                                  ? "text-green-400"
-                                  : "text-red-400"
-                              }`}
-                            >
-                              {result.isValid ? (
-                                <svg
-                                  className="w-5 h-5"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              ) : (
-                                <svg
-                                  className="w-5 h-5"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4
-                                  className={`font-medium ${
-                                    result.isValid
-                                      ? "text-green-300"
-                                      : "text-red-300"
-                                  }`}
-                                >
-                                  {result.fileName}
-                                </h4>
-                                <span
-                                  className={`px-2 py-0.5 text-xs rounded-full ${
-                                    result.isValid
-                                      ? "bg-green-500/20 text-green-300"
-                                      : "bg-red-500/20 text-red-300"
-                                  }`}
-                                >
-                                  {result.isValid ? "Valid" : "Invalid"}
-                                </span>
-                              </div>
-                              <p
-                                className={`text-sm ${
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`mt-0.5 ${
                                   result.isValid
-                                    ? "text-green-200/80"
-                                    : "text-red-200/80"
+                                    ? "text-green-400"
+                                    : "text-red-400"
                                 }`}
                               >
-                                {result.message ||
-                                  result.error ||
-                                  "Verification completed"}
-                              </p>
-
-                              {/* Show additional details if available */}
-                              {result.details && (
-                                <div className="mt-2 text-xs space-y-1">
-                                  {result.details.universityName && (
-                                    <p>
-                                      <span className="text-slate-400">
-                                        University:
-                                      </span>{" "}
-                                      {result.details.universityName}
-                                    </p>
-                                  )}
-                                  {result.details.studentName && (
-                                    <p>
-                                      <span className="text-slate-400">
-                                        Student:
-                                      </span>{" "}
-                                      {result.details.studentName}
-                                    </p>
-                                  )}
-                                  {result.details.course && (
-                                    <p>
-                                      <span className="text-slate-400">
-                                        Course:
-                                      </span>{" "}
-                                      {result.details.course}
-                                    </p>
-                                  )}
-                                  {result.details.issueDate && (
-                                    <p>
-                                      <span className="text-slate-400">
-                                        Issued:
-                                      </span>{" "}
-                                      {new Date(
-                                        result.details.issueDate
-                                      ).toLocaleDateString()}
-                                    </p>
-                                  )}
+                                {result.isValid ? (
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4
+                                    className={`font-medium ${
+                                      result.isValid
+                                        ? "text-green-300"
+                                        : "text-red-300"
+                                    }`}
+                                  >
+                                    {result.fileName}
+                                  </h4>
+                                  <span
+                                    className={`px-2 py-0.5 text-xs rounded-full ${
+                                      result.isValid
+                                        ? "bg-green-500/20 text-green-300"
+                                        : "bg-red-500/20 text-red-300"
+                                    }`}
+                                  >
+                                    {result.isValid ? "Valid" : "Invalid"}
+                                  </span>
                                 </div>
-                              )}
+                                <p
+                                  className={`text-sm ${
+                                    result.isValid
+                                      ? "text-green-200/80"
+                                      : "text-red-200/80"
+                                  }`}
+                                >
+                                  {result.message ||
+                                    result.error ||
+                                    "Verification completed"}
+                                </p>
+
+                                {/* Show additional details if available */}
+                                {result.details && (
+                                  <div className="mt-2 text-xs space-y-1">
+                                    {result.details.universityName && (
+                                      <p>
+                                        <span className="text-slate-400">
+                                          University:
+                                        </span>{" "}
+                                        {result.details.universityName}
+                                      </p>
+                                    )}
+                                    {result.details.studentName && (
+                                      <p>
+                                        <span className="text-slate-400">
+                                          Student:
+                                        </span>{" "}
+                                        {result.details.studentName}
+                                      </p>
+                                    )}
+                                    {result.details.course && (
+                                      <p>
+                                        <span className="text-slate-400">
+                                          Course:
+                                        </span>{" "}
+                                        {result.details.course}
+                                      </p>
+                                    )}
+                                    {result.details.issueDate && (
+                                      <p>
+                                        <span className="text-slate-400">
+                                          Issued:
+                                        </span>{" "}
+                                        {new Date(
+                                          result.details.issueDate
+                                        ).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {/* Hidden canvas for photo capture */}
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-          )}
+                {/* Hidden canvas for photo capture */}
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
+            ))}
 
           {/* Pending Requests Section (Admin Only) */}
           {active === "pending-requests" && role === "admin" && (
@@ -1603,6 +1754,247 @@ const Dashboard = () => {
           <div className="text-md font-semibold text-slate-400">VeriFy</div>
           <div className="flex gap-2"></div>
         </footer>
+
+        {/* Upload Results Modal */}
+        {uploadResultsOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setUploadResultsOpen(false)}
+            />
+            <div className="relative max-w-2xl w-[92%] md:w-[700px] rounded-xl border border-white/10 bg-[#0b0a13] shadow-xl">
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+                <h3 className="text-slate-100 text-lg font-semibold">
+                  Issued Documents
+                </h3>
+                <button
+                  onClick={() => setUploadResultsOpen(false)}
+                  className="px-2 py-1 rounded-lg text-slate-300 hover:bg-white/5"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+                {uploadResults.map((r, idx) => (
+                  <div
+                    key={r.certHash || idx}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-white/10 bg-white/[0.02]"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-200 truncate">
+                        {r.fileName}
+                      </div>
+                      <a
+                        href={r.finalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block text-xs text-violet-300 hover:text-violet-200 underline break-all"
+                        title={r.finalUrl}
+                      >
+                        {r.finalUrl}
+                      </a>
+                    </div>
+                    <div className="shrink-0 flex gap-2">
+                      <a
+                        href={r.finalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-2 rounded-lg bg-[#1e152e] text-violet-300 border border-violet-500/30 hover:bg-[#2c223c] text-xs"
+                      >
+                        Open
+                      </a>
+                      <a
+                        href={r.finalUrl}
+                        download
+                        className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-xs"
+                      >
+                        Download
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard
+                            .writeText(r.finalUrl)
+                            .then(() => {
+                              toast.success("Link copied to clipboard");
+                            })
+                            .catch(() => toast.error("Failed to copy link"));
+                        }}
+                        className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-xs"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 py-3 border-t border-white/10 flex justify-end">
+                <button
+                  onClick={() => setUploadResultsOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Summary Modal */}
+        {verifySummaryOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setVerifySummaryOpen(false)}
+            />
+            <div className="relative max-w-3xl w-[94%] md:w-[820px] rounded-xl border border-white/10 bg-[#0b0a13] shadow-xl">
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+                <h3 className="text-slate-100 text-lg font-semibold">
+                  Verification Summary
+                </h3>
+                <button
+                  onClick={() => setVerifySummaryOpen(false)}
+                  className="px-2 py-1 rounded-lg text-slate-300 hover:bg-white/5"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* Summary counts */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-300">
+                      {(verifyResults as any)?.summary?.total_files ??
+                        ((verifyResults as any)?.accepted_certificates
+                          ?.length || 0) +
+                          ((verifyResults as any)?.rejected_certificates
+                            ?.length || 0)}
+                    </div>
+                    <div className="text-xs text-slate-400">Total Files</div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center">
+                    <div className="text-2xl font-bold text-green-300">
+                      {(verifyResults as any)?.summary?.accepted_count ??
+                        (verifyResults as any)?.accepted_certificates?.length ??
+                        0}
+                    </div>
+                    <div className="text-xs text-slate-400">Accepted</div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center">
+                    <div className="text-2xl font-bold text-red-300">
+                      {(verifyResults as any)?.summary?.rejected_count ??
+                        (verifyResults as any)?.rejected_certificates?.length ??
+                        0}
+                    </div>
+                    <div className="text-xs text-slate-400">Rejected</div>
+                  </div>
+                </div>
+
+                {/* Download links */}
+                <div className="flex flex-wrap gap-2">
+                  {(verifyResults as any)?.download_links?.accepted && (
+                    <a
+                      href={toAbsoluteDownload(
+                        (verifyResults as any).download_links.accepted
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs"
+                    >
+                      Download Accepted ZIP
+                    </a>
+                  )}
+                  {(verifyResults as any)?.download_links?.rejected && (
+                    <a
+                      href={toAbsoluteDownload(
+                        (verifyResults as any).download_links.rejected
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs"
+                    >
+                      Download Rejected ZIP
+                    </a>
+                  )}
+                </div>
+
+                {/* Lists */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02]">
+                    <div className="px-4 py-2 border-b border-white/10 text-sm font-semibold text-green-300">
+                      Accepted
+                    </div>
+                    <div className="max-h-56 overflow-y-auto p-3 space-y-2">
+                      {((verifyResults as any)?.accepted_certificates || [])
+                        .length ? (
+                        (verifyResults as any).accepted_certificates.map(
+                          (name: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="text-xs text-slate-300 truncate"
+                            >
+                              {name}
+                            </div>
+                          )
+                        )
+                      ) : (
+                        <div className="text-xs text-slate-500">
+                          No accepted files
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.02]">
+                    <div className="px-4 py-2 border-b border-white/10 text-sm font-semibold text-red-300">
+                      Rejected
+                    </div>
+                    <div className="max-h-56 overflow-y-auto p-3 space-y-2">
+                      {((verifyResults as any)?.rejected_certificates || [])
+                        .length ? (
+                        (verifyResults as any).rejected_certificates.map(
+                          (name: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="text-xs text-slate-300 truncate"
+                            >
+                              {name}
+                            </div>
+                          )
+                        )
+                      ) : (
+                        <div className="text-xs text-slate-500">
+                          No rejected files
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meta info */}
+                <div className="text-xs text-slate-400">
+                  <div>
+                    Session: {(verifyResults as any)?.session_id || "-"}
+                  </div>
+                  <div>
+                    Uploaded:{" "}
+                    {(verifyResults as any)?.processing_details?.upload_time
+                      ? new Date(
+                          (verifyResults as any).processing_details.upload_time
+                        ).toLocaleString()
+                      : "-"}
+                  </div>
+                </div>
+              </div>
+              <div className="px-5 py-3 border-t border-white/10 flex justify-end">
+                <button
+                  onClick={() => setVerifySummaryOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
