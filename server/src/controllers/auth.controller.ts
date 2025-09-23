@@ -68,7 +68,6 @@ export const signup = async (req: Request, res: Response) => {
       });
     }
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: "Internal server error " });
   }
 };
@@ -81,7 +80,6 @@ export const universitySignUp = async (req: Request, res: Response) => {
       try {
         const cloudinaryResult = await uploadToCloudinary(req.file.buffer);
         letterUrl = cloudinaryResult.secure_url;
-        console.log(letterUrl);
       } catch (uploadError) {
         console.error("❌ Cloudinary upload failed:", uploadError);
         return res.status(500).json({
@@ -157,7 +155,6 @@ export const universitySignUp = async (req: Request, res: Response) => {
       message: `OTP sent to ${email}. Please verify to complete your registration.`,
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json({ message: "Internal server error " });
   }
 };
@@ -233,7 +230,6 @@ export const verifyUniversityOTP = async (req: Request, res: Response) => {
       message: "University registration request submitted successfully",
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json({ message: "Internal server error " });
   }
 };
@@ -285,7 +281,6 @@ export const logout = (req: Request, res: Response) => {
       message: "Logout successfully",
     });
   } catch (e) {
-    console.log(e);
     res.status(500).json({ message: "Internal server error " });
   }
 };

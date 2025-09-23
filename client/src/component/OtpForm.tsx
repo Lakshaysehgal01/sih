@@ -120,7 +120,6 @@ const OtpForm: React.FC<OtpFormProps> = ({
   const handleResend = async () => {
     try {
       // You'll need to implement a resend OTP endpoint
-      console.log("Resending OTP to:", email);
       setOtp(["", "", "", "", "", ""]);
       setTimeLeft(300);
       setError("");

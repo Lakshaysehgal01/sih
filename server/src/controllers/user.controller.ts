@@ -8,7 +8,6 @@ export const verifyQr = async (req: Request, res: Response) => {
     const [valid, issuer, url] = result;
     res.json({ valid, issuer, url });
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       message: "Internal server error",
     });
