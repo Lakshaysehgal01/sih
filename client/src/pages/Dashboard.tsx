@@ -14,7 +14,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 ("use client");
 
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Loader2 } from "lucide-react";
 import {
   LabelList,
   RadialBar,
@@ -148,6 +148,11 @@ const Dashboard = () => {
   const [issuedDocsTotalPages, setIssuedDocsTotalPages] = useState(1);
   const [issuedDocsLimit, setIssuedDocsLimit] = useState(5);
 
+  const [requestLoading, setRequestLoading] = useState<boolean>(false);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(
+    null
+  );
+
   const chartData = [
     {
       type: "Rejected Documents",
@@ -190,14 +195,6 @@ const Dashboard = () => {
         setPendingRequests([]);
       }
     } catch (error: any) {
-      console.error("❌ Failed to fetch pending requests:", error);
-      console.error("❌ Error details:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-      });
-
       setRequestsError(
         error.response?.data?.message || "Failed to fetch pending requests"
       );
@@ -209,6 +206,10 @@ const Dashboard = () => {
 
   // Handle approve university request
   const handleApproveRequest = async (requestId: string) => {
+    if (requestLoading || rejectLoading || processingRequestId) return;
+
+    setRequestLoading(true);
+    setProcessingRequestId(requestId);
     try {
       const response = await axiosInstance.post(
         `/admin/accept/${requestId}`,
@@ -228,6 +229,9 @@ const Dashboard = () => {
       toast.error(
         error.response?.data?.message || "Failed to approve university request"
       );
+    } finally {
+      setRequestLoading(false);
+      setProcessingRequestId(null);
     }
   };
 
@@ -252,6 +256,7 @@ const Dashboard = () => {
     if (!selectedRequestId) return;
 
     setRejectLoading(true);
+    setProcessingRequestId(selectedRequestId);
     try {
       const response = await axiosInstance.post(
         `/admin/reject/${selectedRequestId}`,
@@ -276,11 +281,14 @@ const Dashboard = () => {
       );
     } finally {
       setRejectLoading(false);
+      setProcessingRequestId(null);
     }
   };
 
   // Handle opening reject modal
   const handleOpenRejectModal = (requestId: string) => {
+    if (requestLoading || rejectLoading || processingRequestId) return;
+
     setSelectedRequestId(requestId);
     setReasonModalOpen(true);
   };
@@ -399,14 +407,6 @@ const Dashboard = () => {
 
       throw new Error("Invalid response format");
     } catch (error: any) {
-      console.error("❌ Failed to get user details:", error);
-      console.error("❌ User details error:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-      });
-
       if (error.response?.status === 401) {
         navigate("/signin");
       }
@@ -1822,7 +1822,9 @@ const Dashboard = () => {
                   pendingRequests.map((request) => (
                     <div
                       key={request._id}
-                      className="bg-white/[0.02] border border-white/10 rounded-lg p-4"
+                      className={`bg-white/[0.02] border border-white/10 rounded-lg p-4 relative ${
+                        processingRequestId === request._id ? "opacity-60" : ""
+                      }`}
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="flex-1">
@@ -1865,24 +1867,56 @@ const Dashboard = () => {
                         <div className="flex flex-col sm:flex-row gap-2 lg:w-auto">
                           <button
                             onClick={() => handleViewLetter(request.letter)}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                            disabled={processingRequestId === request._id}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
                           >
                             📄 View Letter
                           </button>
                           <button
                             onClick={() => handleApproveRequest(request._id)}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                            disabled={
+                              processingRequestId === request._id ||
+                              requestLoading
+                            }
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center space-x-2"
                           >
-                            ✅ Approve
+                            {requestLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Approving...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>✅</span>
+                                <span>Approve</span>
+                              </>
+                            )}
                           </button>
                           <button
                             onClick={() => handleOpenRejectModal(request._id)}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                            disabled={
+                              processingRequestId === request._id ||
+                              requestLoading
+                            }
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors flex items-center space-x-2"
                           >
-                            ❌ Reject
+                            <span>❌</span>
+                            <span>Reject</span>
                           </button>
                         </div>
                       </div>
+
+                      {/* Loading Overlay */}
+                      {processingRequestId === request._id && (
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                          <div className="bg-white/10 rounded-lg p-4 flex items-center space-x-3">
+                            <Loader2 className="w-5 h-5 animate-spin text-white" />
+                            <span className="text-white text-sm font-medium">
+                              {rejectLoading ? "Rejecting..." : "Approving..."}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
