@@ -229,3 +229,21 @@ export const getAllIssuedDocuments = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getUniversityByIssueId = async (req: Request, res: Response) => {
+  const { issuerId } = req.params;
+  try {
+    const university = await University.findOne({
+      publicAddress: issuerId,
+    }).select(
+      "-__v -createdAt -updatedAt -password -issuedDocuments -letter -publicAddress"
+    );
+    if (!university) {
+      res.status(404).json({ message: "University not found" });
+      return;
+    }
+    res.status(200).json({ university });
+  } catch (err) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

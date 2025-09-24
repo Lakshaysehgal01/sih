@@ -107,7 +107,7 @@ const Dashboard = () => {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string>("");
-  const [facingMode, setFacingMode] = useState<FacingMode>("user"); // "user" for front, "environment" for back
+  const [facingMode, setFacingMode] = useState<FacingMode>("user");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -721,7 +721,7 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Alice1dsadsadfsfhajkdsnfchjdsadsaknsnsaajs12",
+          name: "Alice14321",
           rollNo: "12ajcaak3",
           course: "B.Tezch",
           year: "2025",
@@ -729,7 +729,7 @@ const Dashboard = () => {
           cgpa: "9.1",
         },
         {
-          name: "Bob34aa43ajddsadsadsacxzdssjaawjanfjdsknda",
+          name: "Bob34543",
           rollNo: "12kaz4",
           course: "B.Sc",
           year: "2025",
