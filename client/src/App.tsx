@@ -12,6 +12,7 @@ import AdminSignIn from "./pages/AdminSignIn";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
+import Verify from "./pages/Verify";
 
 function App() {
   return (
@@ -27,6 +28,8 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/cookies" element={<CookiePolicy />} />
+        <Route path="/verify/:certHash" element={<Verify />} />
+        <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
       <Toaster />
     </div>
