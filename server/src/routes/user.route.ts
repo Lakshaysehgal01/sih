@@ -10,6 +10,6 @@ router.get("/verify1", protect(), verifyFromDB);
 //Qr code one
 router.get("/verify/:hash", protect(), verifyQr);
 
-router.get("/universities/:issuerId", protect(), getUniversityByIssueId);
+router.get("/universities/:issuerId", getUniversityByIssueId);
 
 export default router;
