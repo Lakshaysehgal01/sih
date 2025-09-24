@@ -15,6 +15,7 @@ interface SignInFormData {
 const AdminSignIn: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [seePassword, setSeePassword] = useState<boolean>(false);
+  //@ts-ignore
   const [selectedRole, setSelectedRole] = useState<"admin">("admin");
   const navigate = useNavigate();
 

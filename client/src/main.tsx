@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
@@ -12,7 +11,6 @@ import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
-  // <StrictMode>
   <DrawerProvider>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -33,5 +31,4 @@ createRoot(document.getElementById("root")!).render(
       </QueryClientProvider>
     </WagmiProvider>
   </DrawerProvider>
-  // </StrictMode>
 );
