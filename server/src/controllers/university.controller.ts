@@ -23,7 +23,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
       const uploaded: UploadApiResponse = await new Promise(
         (resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
-            { resource_type: "raw", folder: "issue_documents" },
+            { resource_type: "auto", folder: "issue_documents" },
             (error, result) => {
               if (error) reject(error);
               else resolve(result as UploadApiResponse);
@@ -113,7 +113,7 @@ export const finializeMultiple = async (req: Request, res: Response) => {
           const stream = cloudinary.uploader.upload_stream(
             {
               folder: "Document_qr",
-              resource_type: "raw",
+              resource_type: "auto",
             },
             (error, result) => {
               if (error) reject(error);
