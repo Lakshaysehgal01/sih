@@ -3,7 +3,7 @@ import { config } from "@/lib/wagmi";
 import { ABI } from "@/utils/ABI";
 import { useState, useRef, useEffect } from "react";
 import type React from "react";
-import { useWriteContract } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { useNavigate } from "react-router-dom";
 import ReasonModal from "@/component/ReasonModal";
@@ -127,7 +127,8 @@ const Dashboard = () => {
     }>
   >([]);
   const [verifySummaryOpen, setVerifySummaryOpen] = useState(false);
-
+  // public addres of user
+  const { address } = useAccount();
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -715,6 +716,17 @@ const Dashboard = () => {
 
   const handleUpload = async (e: React.FormEvent): Promise<void> => {
     if (!files.length) return;
+    if (!address) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    if (entityDetails.publicAddress != address) {
+      toast.error(
+        "Connected wallet does not match registered university wallet"
+      );
+      return;
+    }
+    // todo the address given
     setUploading(true);
     setMessage("");
     e.preventDefault();
