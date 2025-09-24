@@ -97,7 +97,6 @@ const Verify = () => {
         toast.error("Document verification failed");
       }
     } catch (error: any) {
-      console.error("Verification error:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to verify document";
       setError(errorMessage);
