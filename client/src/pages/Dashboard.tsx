@@ -720,7 +720,7 @@ const Dashboard = () => {
       toast.error("Please connect your wallet first");
       return;
     }
-    if (entityDetails.publicAddress != address) {
+    if (entityDetails.university.publicAddress != address) {
       toast.error(
         "Connected wallet does not match registered university wallet"
       );
@@ -733,22 +733,23 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Alice14321",
-          rollNo: "12ajcaak3",
-          course: "B.Tezch",
-          year: "2025",
-          university: "ABC University",
+          name: "Lakshay Sachdeva",
+          rollNo: "01815003123",
+          course: "B.Tech-IT",
+          year: "2027",
+          university: "MSIT",
           cgpa: "9.1",
         },
         {
-          name: "Bob34543",
-          rollNo: "12kaz4",
-          course: "B.Sc",
-          year: "2025",
-          university: "XYZ University",
-          cgpa: "8.5",
+          name: "Kashika Malhotra",
+          rollNo: "07615003123",
+          course: "BTech-CSE",
+          year: "2027",
+          university: "MSIT",
+          cgpa: "6.4",
         },
       ];
+
       const formData = new FormData();
 
       files.forEach((file) => {
