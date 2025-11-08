@@ -720,7 +720,9 @@ const Dashboard = () => {
       toast.error("Please connect your wallet first");
       return;
     }
-    if (entityDetails.university.publicAddress != address) {
+    console.log(entityDetails);
+    console.log(address);
+    if (entityDetails.university.publicAddress != address?.toLocaleLowerCase()) {
       toast.error(
         "Connected wallet does not match registered university wallet"
       );
@@ -733,8 +735,9 @@ const Dashboard = () => {
     try {
       const metadata = [
         {
-          name: "Lakshay Sachdeva",
-          rollNo: "018150031234",
+          //
+          name: "lakshya sachdeva",
+          rollNo: "018187ad5629034kna933",
           course: "B.Tech-IT",
           year: "2027",
           university: "MSIT",

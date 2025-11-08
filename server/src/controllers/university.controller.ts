@@ -20,6 +20,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
       const file = req.files[i];
       const pdfBuffer = file?.buffer;
       const meta = metadataArray[i];
+
       const uploaded: UploadApiResponse = await new Promise(
         (resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -32,6 +33,7 @@ export const issueManyDocuments = async (req: Request, res: Response) => {
           stream.end(pdfBuffer);
         }
       );
+
       const { name, university, year, course, cgpa, rollNo } = meta;
       const rawString = `${name}|${rollNo}|${course}|${year}|${university}|${cgpa}`;
       const certHash =
@@ -148,6 +150,7 @@ export const finializeMultiple = async (req: Request, res: Response) => {
 export const getUniversityDetails = async (req: Request, res: Response) => {
   try {
     const universityId = req.user?.id;
+    console.log(universityId);
     if (!universityId) {
       res.status(400).json({ message: "University ID not found in request" });
       return;

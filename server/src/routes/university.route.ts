@@ -2,24 +2,13 @@ import express from "express";
 import { protect } from "../middleware/auth.middleware.js";
 
 import {
-  // finialize,
   finializeMultiple,
   getAllIssuedDocuments,
   getUniversityDetails,
-  // issueDocument,
   issueManyDocuments,
 } from "../controllers/university.controller.js";
 import { upload } from "../lib/multer.js";
 const router = express.Router();
-
-// router.post(
-//   "/issue",
-//   protect("university", "admin"),
-//   upload.single("pdf"),
-//   issueDocument
-// );
-
-// router.post("/finialize", protect("university", "admin"), finialize);
 
 router.post(
   "/issueMany",

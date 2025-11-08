@@ -84,11 +84,12 @@ const Verify = () => {
       setError("");
 
       const response = await axiosInstance.get(`/public/verify/${certHash}`);
-      setResult(response.data);
-
+      const formattedIssuer = response.data.issuer.toLocaleString();
+      console.log(formattedIssuer);
       const universityDetails = await axiosInstance.get(
         `/public/universities/${response?.data?.issuer}`
       );
+      console.log(universityDetails.data);
       setUniversity(universityDetails.data);
 
       if (response.data.valid) {
